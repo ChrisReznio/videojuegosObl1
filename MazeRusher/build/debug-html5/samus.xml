@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with TexturePacker https://www.codeandweb.com/texturepacker -->
+<!-- $TexturePacker:SmartUpdate:17aed92d8f90fcae9e1f33a1d1405a17:2a6acb42efdc7855bf7814014d02077d:447004ccf492e1b25d5b881e3ea329af$ -->
+<TextureAtlas imagePath="samus.png" width="219" height="85">
+    <SubTexture name="samusShooting" x="0" y="0" width="39" height="85" frameX="0" frameY="0" frameWidth="40" frameHeight="86"/>
+    <SubTexture name="samusRunning_1" x="39" y="0" width="50" height="80" frameX="-19" frameY="-1" frameWidth="74" frameHeight="86"/>
+    <SubTexture name="samusRunning_2" x="89" y="0" width="61" height="81" frameX="-8" frameY="0" frameWidth="73" frameHeight="85"/>
+    <SubTexture name="samusRunning_3" x="150" y="0" width="69" height="77" frameX="0" frameY="0" frameWidth="73" frameHeight="85"/>
+</TextureAtlas>

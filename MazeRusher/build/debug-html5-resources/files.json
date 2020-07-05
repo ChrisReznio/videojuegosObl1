@@ -1934,6 +1934,46 @@
 			]
 		},
 		{
+			"name": "tile_dungeon_1_tsx",
+			"files": [
+				"tile_dungeon_1.tsx"
+			],
+			"file_sizes": [
+				264
+			],
+			"type": "blob"
+		},
+		{
+			"name": "tile_indoors_1_tsx",
+			"files": [
+				"tile_indoors_1.tsx"
+			],
+			"file_sizes": [
+				291
+			],
+			"type": "blob"
+		},
+		{
+			"name": "tile_red_crystal_tsx",
+			"files": [
+				"tile_red_crystal.tsx"
+			],
+			"file_sizes": [
+				279
+			],
+			"type": "blob"
+		},
+		{
+			"name": "tile_terrain_1_tsx",
+			"files": [
+				"tile_terrain_1.tsx"
+			],
+			"file_sizes": [
+				240
+			],
+			"type": "blob"
+		},
+		{
 			"name": "vBlurVertexShader_vert",
 			"files": [
 				"vBlurVertexShader.vert.essl",

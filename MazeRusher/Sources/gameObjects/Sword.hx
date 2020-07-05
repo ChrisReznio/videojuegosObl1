@@ -15,11 +15,5 @@ class Sword extends Entity
 		super();
 		pool=true;
 		bulletsCollisions=new CollisionGroup();
-	}
-	public function shoot(aX:Float, aY:Float,dirX:Float,dirY:Float):Void
-	{
-		var bullet:Bullet=cast recycle(Bullet);
-		bullet.shoot(aX,aY,dirX,dirY,bulletsCollisions);
-	}
-	
+	}	
 }

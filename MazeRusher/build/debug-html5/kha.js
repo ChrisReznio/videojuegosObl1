@@ -32,6 +32,19 @@ EReg.prototype = {
 	}
 	,__class__: EReg
 };
+var GlobalGameData = function() { };
+$hxClasses["GlobalGameData"] = GlobalGameData;
+GlobalGameData.__name__ = "GlobalGameData";
+GlobalGameData.destroy = function() {
+	GlobalGameData.player = null;
+	GlobalGameData.simulationLayer = null;
+	GlobalGameData.camera = null;
+	GlobalGameData.lives = 3;
+	GlobalGameData.bagpipeCoolDown = 0;
+	GlobalGameData.swapparangCoolDown = 0;
+	GlobalGameData.unlockedBagpipe = false;
+	GlobalGameData.unlockedSwapparang = false;
+};
 var HxOverrides = function() { };
 $hxClasses["HxOverrides"] = HxOverrides;
 HxOverrides.__name__ = "HxOverrides";
@@ -454,21 +467,6 @@ Xml.prototype = {
 		}
 		return HxOverrides.iter(_g);
 	}
-	,firstElement: function() {
-		if(this.nodeType != Xml.Document && this.nodeType != Xml.Element) {
-			throw new js__$Boot_HaxeError("Bad node type, expected Element or Document but found " + _$Xml_XmlType_$Impl_$.toString(this.nodeType));
-		}
-		var _g = 0;
-		var _g1 = this.children;
-		while(_g < _g1.length) {
-			var child = _g1[_g];
-			++_g;
-			if(child.nodeType == Xml.Element) {
-				return child;
-			}
-		}
-		return null;
-	}
 	,addChild: function(x) {
 		if(this.nodeType != Xml.Document && this.nodeType != Xml.Element) {
 			throw new js__$Boot_HaxeError("Bad node type, expected Element or Document but found " + _$Xml_XmlType_$Impl_$.toString(this.nodeType));
@@ -564,6 +562,26 @@ com_framework_utils_Entity.prototype = {
 	,limboStart: function() {
 		throw new js__$Boot_HaxeError("override this function recycle object");
 	}
+	,recycle: function(type,arg) {
+		if(this.childrenInLimbo > 0) {
+			var _g = 0;
+			var _g1 = this.children;
+			while(_g < _g1.length) {
+				var child = _g1[_g];
+				++_g;
+				if(!child.limbo) {
+					continue;
+				}
+				child.limbo = false;
+				child.dead = false;
+				--this.childrenInLimbo;
+				return child;
+			}
+		}
+		var obj = Type.createInstance(type,arg == null ? [] : arg);
+		this.addChild(obj);
+		return obj;
+	}
 	,die: function() {
 		this.dead = true;
 	}
@@ -576,6 +594,138 @@ com_framework_utils_Entity.prototype = {
 	}
 	,__class__: com_framework_utils_Entity
 };
+var cinematic_Dialog = function(x,y,width,height,aText,aTextGuide,aWeapon) {
+	com_framework_utils_Entity.call(this);
+	this.collider = new com_collision_platformer_CollisionBox();
+	this.collider.x = x;
+	this.collider.y = y;
+	this.collider.userData = this;
+	this.collider.width = width;
+	this.collider.height = height;
+	this.text = aText;
+	this.textGuide = aTextGuide;
+	this.weapon = aWeapon;
+};
+$hxClasses["cinematic.Dialog"] = cinematic_Dialog;
+cinematic_Dialog.__name__ = "cinematic.Dialog";
+cinematic_Dialog.__super__ = com_framework_utils_Entity;
+cinematic_Dialog.prototype = $extend(com_framework_utils_Entity.prototype,{
+	update: function(dt) {
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,__class__: cinematic_Dialog
+});
+var cinematic_Door = function(x,y,width,height,room,newPosX,newPosY) {
+	com_framework_utils_Entity.call(this);
+	this.collider = new com_collision_platformer_CollisionBox();
+	this.collider.x = x;
+	this.collider.y = y;
+	this.collider.userData = this;
+	this.collider.width = width;
+	this.collider.height = height;
+	this.room = room;
+	this.newPosX = newPosX;
+	this.newPosY = newPosY;
+};
+$hxClasses["cinematic.Door"] = cinematic_Door;
+cinematic_Door.__name__ = "cinematic.Door";
+cinematic_Door.__super__ = com_framework_utils_Entity;
+cinematic_Door.prototype = $extend(com_framework_utils_Entity.prototype,{
+	update: function(dt) {
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,changeRoom: function(gameState) {
+		gameState.changeState(new states_GameState(this.room,this.newPosX,this.newPosY));
+	}
+	,teleportPlayer: function(player) {
+		player.collision.x = this.newPosX;
+		player.collision.y = this.newPosY;
+	}
+	,__class__: cinematic_Door
+});
+var cinematic_FinalDialog = function(x,y,width,height,aText,aText2,aText3,aText4) {
+	com_framework_utils_Entity.call(this);
+	this.collider = new com_collision_platformer_CollisionBox();
+	this.collider.x = x;
+	this.collider.y = y;
+	this.collider.userData = this;
+	this.collider.width = width;
+	this.collider.height = height;
+	this.text = aText;
+	this.text2 = aText2;
+	this.text3 = aText3;
+	this.text4 = aText4;
+};
+$hxClasses["cinematic.FinalDialog"] = cinematic_FinalDialog;
+cinematic_FinalDialog.__name__ = "cinematic.FinalDialog";
+cinematic_FinalDialog.__super__ = com_framework_utils_Entity;
+cinematic_FinalDialog.prototype = $extend(com_framework_utils_Entity.prototype,{
+	update: function(dt) {
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,__class__: cinematic_FinalDialog
+});
+var cinematic_Spawn = function(x,y,width,height,type,dirY) {
+	com_framework_utils_Entity.call(this);
+	this.collider = new com_collision_platformer_CollisionBox();
+	this.collider.x = x;
+	this.collider.y = y;
+	this.collider.userData = this;
+	this.collider.width = width;
+	this.collider.height = height;
+	this.enemyType = type;
+	this.directionY = dirY;
+};
+$hxClasses["cinematic.Spawn"] = cinematic_Spawn;
+cinematic_Spawn.__name__ = "cinematic.Spawn";
+cinematic_Spawn.__super__ = com_framework_utils_Entity;
+cinematic_Spawn.prototype = $extend(com_framework_utils_Entity.prototype,{
+	update: function(dt) {
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,activate: function(gameState) {
+		if(this.enemyType == "spider") {
+			var spider = new gameObjects_Spider(gameState.simulationLayer,gameState.spiderCollision,this.collider.x,this.collider.y);
+			gameState.addChild(spider);
+		}
+		if(this.enemyType == "spectre") {
+			var spectre = new gameObjects_Spectre(gameState.simulationLayer,gameState.spectreCollision,this.collider.x,this.collider.y);
+			gameState.addChild(spectre);
+		}
+		if(this.enemyType == "golem") {
+			var golem;
+			if(this.directionY > 0) {
+				golem = new gameObjects_Golem(gameState.simulationLayer,gameState.golemUpCollision,this.collider.x,this.collider.y,this.directionY);
+			} else {
+				golem = new gameObjects_Golem(gameState.simulationLayer,gameState.golemDownCollision,this.collider.x,this.collider.y,this.directionY);
+			}
+			gameState.addChild(golem);
+		}
+	}
+	,__class__: cinematic_Spawn
+});
+var cinematic_Trap = function(x,y,width,height) {
+	this.activated = false;
+	com_framework_utils_Entity.call(this);
+	this.collider = new com_collision_platformer_CollisionBox();
+	this.collider.x = x;
+	this.collider.y = y;
+	this.collider.userData = this;
+	this.collider.width = width;
+	this.collider.height = height;
+};
+$hxClasses["cinematic.Trap"] = cinematic_Trap;
+cinematic_Trap.__name__ = "cinematic.Trap";
+cinematic_Trap.__super__ = com_framework_utils_Entity;
+cinematic_Trap.prototype = $extend(com_framework_utils_Entity.prototype,{
+	update: function(dt) {
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,activate: function() {
+		this.activated = true;
+	}
+	,__class__: cinematic_Trap
+});
 var com_TimeManager = function() { };
 $hxClasses["com.TimeManager"] = com_TimeManager;
 com_TimeManager.__name__ = "com.TimeManager";
@@ -638,6 +788,8 @@ var com_collision_platformer_Body = function() {
 	this.accelerationY = 0;
 	this.accelerationX = 0;
 	this.bounce = 0;
+	this.lastVelocityY = 0;
+	this.lastVelocityX = 0;
 	this.velocityY = 0;
 	this.velocityX = 0;
 	this.y = 0;
@@ -652,6 +804,8 @@ com_collision_platformer_Body.prototype = {
 		this.touching = 0;
 		this.lastX = this.x;
 		this.lastY = this.y;
+		this.lastVelocityX = this.velocityX;
+		this.lastVelocityY = this.velocityY;
 		this.velocityX += this.accelerationX * dt;
 		this.velocityY += this.accelerationY * dt;
 		if(Math.abs(this.velocityX) > this.maxVelocityX) {
@@ -694,8 +848,8 @@ com_collision_platformer_ICollider.prototype = {
 };
 var com_collision_platformer_CollisionBox = function() {
 	this.collisionAllow = 15;
-	this.height = 0;
-	this.width = 0;
+	this.height = 10;
+	this.width = 10;
 	com_collision_platformer_Body.call(this);
 };
 $hxClasses["com.collision.platformer.CollisionBox"] = com_collision_platformer_CollisionBox;
@@ -703,7 +857,12 @@ com_collision_platformer_CollisionBox.__name__ = "com.collision.platformer.Colli
 com_collision_platformer_CollisionBox.__interfaces__ = [com_collision_platformer_ICollider];
 com_collision_platformer_CollisionBox.__super__ = com_collision_platformer_Body;
 com_collision_platformer_CollisionBox.prototype = $extend(com_collision_platformer_Body.prototype,{
-	collisionType: function() {
+	removeFromParent: function() {
+		if(this.parent != null) {
+			this.parent.remove(this);
+		}
+	}
+	,collisionType: function() {
 		return com_collision_platformer_CollisionType.Box;
 	}
 	,collide: function(collider,notifyCallback) {
@@ -750,6 +909,9 @@ com_collision_platformer_CollisionBox.prototype = $extend(com_collision_platform
 					}
 					this.touching |= myCollisionNeededX;
 					boxCollider.touching |= colliderNeededX;
+					if(notifyCallback != null) {
+						notifyCallback(this,collider);
+					}
 					return true;
 				} else if((this.collisionAllow & myCollisionNeededY) > 0 && (boxCollider.collisionAllow & colliderNeededY) > 0) {
 					this.y += overlapY * myPonderation;
@@ -773,6 +935,22 @@ com_collision_platformer_CollisionBox.prototype = $extend(com_collision_platform
 			return collider.collide(this,notifyCallback);
 		} else if(collider.collisionType() == com_collision_platformer_CollisionType.Group) {
 			return collider.collide(this,notifyCallback);
+		}
+		return false;
+	}
+	,overlap: function(collider,NotifyCallback) {
+		if(collider.collisionType() == com_collision_platformer_CollisionType.Box) {
+			var box = collider;
+			if(box.x < this.x + this.width && box.x + box.width > this.x && box.y < this.y + this.height && box.y + box.height > this.y) {
+				if(NotifyCallback != null) {
+					NotifyCallback(this,collider);
+				}
+				return true;
+			}
+		} else if(collider.collisionType() == com_collision_platformer_CollisionType.TileMap) {
+			return collider.overlap(this,NotifyCallback);
+		} else if(collider.collisionType() == com_collision_platformer_CollisionType.Group) {
+			collider.overlap(this,NotifyCallback);
 		}
 		return false;
 	}
@@ -845,6 +1023,11 @@ com_collision_platformer_CollisionEngine.collide = function(A,B,aCallBack) {
 	com_collision_platformer_CollisionEngine.colliders.push(B);
 	return A.collide(B,aCallBack);
 };
+com_collision_platformer_CollisionEngine.overlap = function(A,B,aCallBack) {
+	com_collision_platformer_CollisionEngine.colliders.push(A);
+	com_collision_platformer_CollisionEngine.colliders.push(B);
+	return A.overlap(B,aCallBack);
+};
 var com_collision_platformer_CollisionGroup = function() {
 	this.colliders = [];
 };
@@ -858,6 +1041,10 @@ com_collision_platformer_CollisionGroup.prototype = {
 		}
 		this.colliders.push(aCollider);
 		aCollider.parent = this;
+	}
+	,remove: function(aCollider) {
+		aCollider.parent = null;
+		HxOverrides.remove(this.colliders,aCollider);
 	}
 	,collide: function(aCollider,NotifyCallback) {
 		var toReturn = false;
@@ -883,6 +1070,34 @@ com_collision_platformer_CollisionGroup.prototype = {
 				var col = _g12[_g3];
 				++_g3;
 				toReturn = col.collide(aCollider,NotifyCallback) || toReturn;
+			}
+		}
+		return toReturn;
+	}
+	,overlap: function(aCollider,NotifyCallback) {
+		var toReturn = false;
+		if(aCollider.collisionType() == com_collision_platformer_CollisionType.Group) {
+			var group = aCollider;
+			var _g = 0;
+			var _g1 = this.colliders;
+			while(_g < _g1.length) {
+				var col1 = _g1[_g];
+				++_g;
+				var _g2 = 0;
+				var _g11 = group.colliders;
+				while(_g2 < _g11.length) {
+					var col2 = _g11[_g2];
+					++_g2;
+					toReturn = col1.overlap(col2,NotifyCallback) || toReturn;
+				}
+			}
+		} else {
+			var _g3 = 0;
+			var _g12 = this.colliders;
+			while(_g3 < _g12.length) {
+				var col = _g12[_g3];
+				++_g3;
+				toReturn = col.overlap(aCollider,NotifyCallback) || toReturn;
 			}
 		}
 		return toReturn;
@@ -985,6 +1200,31 @@ com_collision_platformer_CollisionTileMap.prototype = {
 		}
 		return 0;
 	}
+	,overlap: function(aCollider,NotifyCallback) {
+		var toReturn = false;
+		if(aCollider.collisionType() == com_collision_platformer_CollisionType.Box) {
+			var box = aCollider;
+			var minX = box.x / this.tileWidth | 0;
+			var minY = box.y / this.tileHeight | 0;
+			var maxX = ((box.x + box.width) / this.tileWidth | 0) + 1;
+			var maxY = ((box.y + box.height) / this.tileHeight | 0) + 1;
+			var _g = minY;
+			while(_g < maxY) {
+				var tileY = _g++;
+				var _g1 = minX;
+				while(_g1 < maxX) {
+					var tileX = _g1++;
+					if(this.getTileId(tileX,tileY) >= this.startingCollisionIndex) {
+						this.helperTile.collisionAllow = this.edges[tileX + tileY * this.widthIntTiles];
+						this.helperTile.x = tileX * this.tileWidth;
+						this.helperTile.y = tileY * this.tileHeight;
+						toReturn = this.helperTile.overlap(box,NotifyCallback) || toReturn;
+					}
+				}
+			}
+		}
+		return toReturn;
+	}
 	,collisionType: function() {
 		return com_collision_platformer_CollisionType.TileMap;
 	}
@@ -1034,12 +1274,28 @@ com_collision_platformer_Tilemap.prototype = {
 		while(_g < tiles.length) {
 			var tile = tiles[_g];
 			++_g;
-			tileMapDisplay.setTile2(counter++,tile.gid - 1);
+			var flipped_horizontally = tile.gid & -2147483648;
+			var flipped_vertically = tile.gid & 1073741824;
+			var flipped_diagonally = tile.gid & 536870912;
+			var id = tile.gid & 536870911;
+			tileMapDisplay.setTile2(counter++,this.idToFrame(id),flipped_horizontally != 0,flipped_vertically != 0,flipped_diagonally != 0);
 		}
 		this.display.addChild(tileMapDisplay);
 		return tileMapDisplay;
 	}
+	,idToFrame: function(id) {
+		var length = this.tileIdStart.length;
+		var _g = 0;
+		while(_g < length) {
+			var i = _g++;
+			if(i == length - 1 || this.tileIdStart[i + 1] > id) {
+				return id - this.tileIdStart[i];
+			}
+		}
+		throw new js__$Boot_HaxeError("tile id can't be map to tilset");
+	}
 	,init: function(processTileMap,processObject) {
+		this.tileIdStart = [];
 		var r = new format_tmx_Reader();
 		var t = r.read(Xml.parse(kha_Assets.blobs.get(this.tmxData).toString()));
 		this.tileWidth = t.tileWidth;
@@ -1048,10 +1304,17 @@ com_collision_platformer_Tilemap.prototype = {
 		this.heightInTiles = t.height;
 		var collision = null;
 		var _g = 0;
-		var _g1 = t.layers;
+		var _g1 = t.tilesets;
 		while(_g < _g1.length) {
-			var layer = _g1[_g];
+			var tilset = _g1[_g];
 			++_g;
+			this.tileIdStart.push(tilset.firstGID);
+		}
+		var _g2 = 0;
+		var _g3 = t.layers;
+		while(_g2 < _g3.length) {
+			var layer = _g3[_g2];
+			++_g2;
 			switch(layer._hx_index) {
 			case 0:
 				if(processTileMap != null) {
@@ -1060,11 +1323,11 @@ com_collision_platformer_Tilemap.prototype = {
 				break;
 			case 1:
 				if(processObject != null) {
-					var _g2 = 0;
-					var _g11 = layer.group.objects;
-					while(_g2 < _g11.length) {
-						var object = _g11[_g2];
-						++_g2;
+					var _g21 = 0;
+					var _g31 = layer.group.objects;
+					while(_g21 < _g31.length) {
+						var object = _g31[_g21];
+						++_g21;
 						processObject(this,object);
 					}
 				}
@@ -1232,6 +1495,8 @@ com_framework_Simulation.prototype = {
 	,__class__: com_framework_Simulation
 };
 var com_framework_utils_Input = function() {
+	this.mouseDeltaY = 0;
+	this.mouseDeltaX = 0;
 	this.screenScale = new com_helpers_FastPoint(1,1);
 	this.mouseIsDown = false;
 	this.mousePressed = false;
@@ -1278,7 +1543,7 @@ com_framework_utils_Input.prototype = {
 		kha_input_Gamepad.notifyOnConnect($bind(this,this.onConnect),$bind(this,this.onDisconnect));
 	}
 	,onConnect: function(aId) {
-		haxe_Log.trace("gamepad " + aId,{ fileName : "com/framework/utils/Input.hx", lineNumber : 83, className : "com.framework.utils.Input", methodName : "onConnect"});
+		haxe_Log.trace("gamepad " + aId,{ fileName : "com/framework/utils/Input.hx", lineNumber : 86, className : "com.framework.utils.Input", methodName : "onConnect"});
 		this.joysticks[aId].onConnect();
 	}
 	,onDisconnect: function(gamePad) {
@@ -1303,6 +1568,8 @@ com_framework_utils_Input.prototype = {
 	}
 	,onTouchEnd: function(id,x,y) {
 		HxOverrides.remove(this.touchActive,id);
+		this.touchPos[id * 2] = x;
+		this.touchPos[id * 2 + 1] = y;
 		--this.activeTouchSpots;
 		if(id == 0) {
 			var _this = this.mousePosition;
@@ -1317,6 +1584,7 @@ com_framework_utils_Input.prototype = {
 			_this.x = x1;
 			_this.y = y1;
 			this.mouseIsDown = false;
+			this.mouseReleased = true;
 		}
 	}
 	,onTouchStart: function(id,x,y) {
@@ -1337,19 +1605,30 @@ com_framework_utils_Input.prototype = {
 			_this.x = x1;
 			_this.y = y1;
 			this.mouseIsDown = true;
+			this.mousePressed = true;
 		}
 	}
-	,onMouseMove: function(x,y,speedX,speedY) {
+	,onMouseMove: function(x,y,moveX,moveY) {
+		this.touchPos[0] = x;
+		this.touchPos[1] = y;
 		this.mousePosition.x = x;
 		this.mousePosition.y = y;
+		this.mouseDeltaX = moveX;
+		this.mouseDeltaY = moveY;
 	}
 	,onMouseUp: function(button,x,y) {
+		HxOverrides.remove(this.touchActive,0);
+		--this.activeTouchSpots;
 		this.mousePosition.x = x;
 		this.mousePosition.y = y;
 		this.mouseReleased = button == 0;
 		this.mouseIsDown = button != 0;
 	}
 	,onMouseDown: function(button,x,y) {
+		++this.activeTouchSpots;
+		this.touchActive.push(0);
+		this.touchPos[0] = x;
+		this.touchPos[1] = y;
 		this.mousePosition.x = x;
 		this.mousePosition.y = y;
 		this.mousePressed = this.mouseIsDown = button == 0;
@@ -1379,6 +1658,8 @@ com_framework_utils_Input.prototype = {
 			++_g;
 			joystick.update();
 		}
+		this.mouseDeltaX = 0;
+		this.mouseDeltaY = 0;
 	}
 	,clearInput: function() {
 		this.mousePressed = false;
@@ -1598,12 +1879,31 @@ com_framework_utils_State.prototype = $extend(com_framework_utils_Entity.prototy
 	}
 	,init: function() {
 	}
+	,addSubState: function(state) {
+		if(state.resources == null) {
+			throw new js__$Boot_HaxeError("call initSubState from parent befour adding");
+		}
+		this.subStates.push(state);
+		state.parentState = this;
+		this.stage.addSubStage(state.stage);
+	}
 	,removeSubState: function(state) {
 		HxOverrides.remove(this.subStates,state);
 		this.stage.removeSubStage(state.stage);
 		state.parentState = null;
 		state.die();
 		state.destroy();
+	}
+	,initSubState: function(state) {
+		state.resources = new com_loading_Resources();
+		state.load(state.resources);
+		state.stage = new com_gEngine_display_Stage();
+		state.resources.load(function() {
+			state.init();
+		});
+	}
+	,changeState: function(state) {
+		com_framework_Simulation.i.changeState(state);
 	}
 	,stageColor: function(r,g,b,a) {
 		if(a == null) {
@@ -1651,6 +1951,11 @@ com_framework_utils_State.prototype = $extend(com_framework_utils_Entity.prototy
 			state.update(dt1);
 		}
 	}
+	,set_timeScale: function(scale) {
+		this.timeScale = scale;
+		this.stage.timeScale = scale;
+		return scale;
+	}
 	,__class__: com_framework_utils_State
 });
 var com_gEngine_AnimationData = function() {
@@ -1670,7 +1975,13 @@ var com_gEngine_DrawArea = function(minX,minY,maxX,maxY) {
 $hxClasses["com.gEngine.DrawArea"] = com_gEngine_DrawArea;
 com_gEngine_DrawArea.__name__ = "com.gEngine.DrawArea";
 com_gEngine_DrawArea.prototype = {
-	__class__: com_gEngine_DrawArea
+	get_width: function() {
+		return this.maxX - this.minX;
+	}
+	,get_height: function() {
+		return this.maxY - this.minY;
+	}
+	,__class__: com_gEngine_DrawArea
 };
 var com_gEngine_Filter = function(filters,cropScreen) {
 	if(cropScreen == null) {
@@ -1935,7 +2246,7 @@ com_gEngine_GEngine.init = function(virtualWidth,virtualHeight,oversample,antiAl
 	com_gEngine_GEngine.virtualWidth = virtualWidth;
 	com_gEngine_GEngine.virtualHeight = virtualHeight;
 	com_gEngine_GEngine.i = new com_gEngine_GEngine(oversample,antiAlias);
-	kha_Assets.loadFont("mainfont",com_gEngine_GEngine.setFont,null,{ fileName : "com/gEngine/GEngine.hx", lineNumber : 153, className : "com.gEngine.GEngine", methodName : "init"});
+	kha_Assets.loadFont("mainfont",com_gEngine_GEngine.setFont,null,{ fileName : "com/gEngine/GEngine.hx", lineNumber : 156, className : "com.gEngine.GEngine", methodName : "init"});
 };
 com_gEngine_GEngine.setFont = function(aFont) {
 	com_gEngine_GEngine.get_i().font = aFont;
@@ -1978,6 +2289,54 @@ com_gEngine_GEngine.prototype = {
 		var tx = -right / right;
 		var ty = -bottom / (0 - bottom);
 		this.modelViewMatrix = new kha_math_FastMatrix4(2 / right,0,0,tx,0,2.0 / (0 - bottom),0,ty,0,0,-0.0004,-1.,0,0,0,1);
+		if(kha_Image.renderTargetsInvertedY()) {
+			var _this = this.modelViewMatrix;
+			var _this__00 = 1;
+			var _this__10 = 0;
+			var _this__20 = 0;
+			var _this__30 = 0;
+			var _this__01 = 0;
+			var _this__11 = -1;
+			var _this__21 = 0;
+			var _this__31 = 0;
+			var _this__02 = 0;
+			var _this__12 = 0;
+			var _this__22 = 1;
+			var _this__32 = 0;
+			var _this__03 = 0;
+			var _this__13 = 0;
+			var _this__23 = 0;
+			var _this__33 = 1;
+			var m = this.modelViewMatrix;
+			var _01 = _this__01 * m._00 + _this__11 * m._01 + _this__21 * m._02 + _this__31 * m._03;
+			var _11 = _this__01 * m._10 + _this__11 * m._11 + _this__21 * m._12 + _this__31 * m._13;
+			var _21 = _this__01 * m._20 + _this__11 * m._21 + _this__21 * m._22 + _this__31 * m._23;
+			var _31 = _this__01 * m._30 + _this__11 * m._31 + _this__21 * m._32 + _this__31 * m._33;
+			var _02 = _this__02 * m._00 + _this__12 * m._01 + _this__22 * m._02 + _this__32 * m._03;
+			var _12 = _this__02 * m._10 + _this__12 * m._11 + _this__22 * m._12 + _this__32 * m._13;
+			var _22 = _this__02 * m._20 + _this__12 * m._21 + _this__22 * m._22 + _this__32 * m._23;
+			var _32 = _this__02 * m._30 + _this__12 * m._31 + _this__22 * m._32 + _this__32 * m._33;
+			var _03 = _this__03 * m._00 + _this__13 * m._01 + _this__23 * m._02 + _this__33 * m._03;
+			var _13 = _this__03 * m._10 + _this__13 * m._11 + _this__23 * m._12 + _this__33 * m._13;
+			var _23 = _this__03 * m._20 + _this__13 * m._21 + _this__23 * m._22 + _this__33 * m._23;
+			var _33 = _this__03 * m._30 + _this__13 * m._31 + _this__23 * m._32 + _this__33 * m._33;
+			_this._00 = _this__00 * m._00 + _this__10 * m._01 + _this__20 * m._02 + _this__30 * m._03;
+			_this._10 = _this__00 * m._10 + _this__10 * m._11 + _this__20 * m._12 + _this__30 * m._13;
+			_this._20 = _this__00 * m._20 + _this__10 * m._21 + _this__20 * m._22 + _this__30 * m._23;
+			_this._30 = _this__00 * m._30 + _this__10 * m._31 + _this__20 * m._32 + _this__30 * m._33;
+			_this._01 = _01;
+			_this._11 = _11;
+			_this._21 = _21;
+			_this._31 = _31;
+			_this._02 = _02;
+			_this._12 = _12;
+			_this._22 = _22;
+			_this._32 = _32;
+			_this._03 = _03;
+			_this._13 = _13;
+			_this._23 = _23;
+			_this._33 = _33;
+		}
 		return true;
 	}
 	,createDefaultPainters: function() {
@@ -2033,7 +2392,7 @@ com_gEngine_GEngine.prototype = {
 	}
 	,endCanvas: function() {
 		if(!this.currentCanvasActive) {
-			haxe_Log.trace("Warning :start buffer before you end it",{ fileName : "com/gEngine/GEngine.hx", lineNumber : 266, className : "com.gEngine.GEngine", methodName : "endCanvas"});
+			haxe_Log.trace("Warning :start buffer before you end it",{ fileName : "com/gEngine/GEngine.hx", lineNumber : 269, className : "com.gEngine.GEngine", methodName : "endCanvas"});
 		}
 		if(this.currentCanvasActive) {
 			this.currentCanvas().get_g4().end();
@@ -2042,7 +2401,7 @@ com_gEngine_GEngine.prototype = {
 	}
 	,beginCanvas: function() {
 		if(this.currentCanvasActive) {
-			haxe_Log.trace("Warning :end buffer before you start ",{ fileName : "com/gEngine/GEngine.hx", lineNumber : 278, className : "com.gEngine.GEngine", methodName : "beginCanvas"});
+			haxe_Log.trace("Warning :end buffer before you start ",{ fileName : "com/gEngine/GEngine.hx", lineNumber : 281, className : "com.gEngine.GEngine", methodName : "beginCanvas"});
 		}
 		if(!this.currentCanvasActive) {
 			this.currentCanvas().get_g4().begin();
@@ -2600,48 +2959,13 @@ com_gEngine_display_Camera.prototype = {
 		this.orthogonal = this.createOrthogonalProjection();
 	}
 	,createOrthogonalProjection: function() {
-		if(kha_Image.renderTargetsInvertedY()) {
-			var _this__00 = 1;
-			var _this__10 = 0;
-			var _this__20 = 0;
-			var _this__30 = 0;
-			var _this__01 = 0;
-			var _this__11 = -1;
-			var _this__21 = 0;
-			var _this__31 = 0;
-			var _this__02 = 0;
-			var _this__12 = 0;
-			var _this__22 = 1;
-			var _this__32 = 0;
-			var _this__03 = 0;
-			var _this__13 = 0;
-			var _this__23 = 0;
-			var _this__33 = 1;
-			var left = -this.width * 0.5;
-			var right = this.width * 0.5;
-			var bottom = this.height * 0.5;
-			var top = -this.height * 0.5;
-			var tx = -(right + left) / (right - left);
-			var ty = -(top + bottom) / (top - bottom);
-			var m__00 = 2 / (right - left);
-			var m__10 = 0;
-			var m__01 = 0;
-			var m__11 = 2.0 / (top - bottom);
-			var m__02 = 0;
-			var m__12 = 0;
-			var m__03 = 0;
-			var m__13 = 0;
-			var m__33 = 1;
-			return new kha_math_FastMatrix4(_this__00 * m__00 + _this__10 * m__01 + _this__20 * m__02 + _this__30 * m__03,_this__00 * m__10 + _this__10 * m__11 + _this__20 * m__12 + _this__30 * m__13,0.,_this__00 * tx + _this__10 * ty + _this__30 * m__33,_this__01 * m__00 + _this__11 * m__01 + _this__21 * m__02 + _this__31 * m__03,_this__01 * m__10 + _this__11 * m__11 + _this__21 * m__12 + _this__31 * m__13,0.,_this__01 * tx + _this__11 * ty + _this__31 * m__33,_this__02 * m__00 + _this__12 * m__01 + _this__22 * m__02 + _this__32 * m__03,_this__02 * m__10 + _this__12 * m__11 + _this__22 * m__12 + _this__32 * m__13,-0.0002,_this__02 * tx + _this__12 * ty + _this__32 * m__33,_this__03 * m__00 + _this__13 * m__01 + _this__23 * m__02 + _this__33 * m__03,_this__03 * m__10 + _this__13 * m__11 + _this__23 * m__12 + _this__33 * m__13,0.,_this__03 * tx + _this__13 * ty + _this__33 * m__33);
-		} else {
-			var left1 = -this.width * 0.5;
-			var right1 = this.width * 0.5;
-			var bottom1 = this.height * 0.5;
-			var top1 = -this.height * 0.5;
-			var tx1 = -(right1 + left1) / (right1 - left1);
-			var ty1 = -(top1 + bottom1) / (top1 - bottom1);
-			return new kha_math_FastMatrix4(2 / (right1 - left1),0,0,tx1,0,2.0 / (top1 - bottom1),0,ty1,0,0,-0.0002,0.,0,0,0,1);
-		}
+		var left = -this.width * 0.5;
+		var right = this.width * 0.5;
+		var bottom = this.height * 0.5;
+		var top = -this.height * 0.5;
+		var tx = -(right + left) / (right - left);
+		var ty = -(top + bottom) / (top - bottom);
+		return new kha_math_FastMatrix4(2 / (right - left),0,0,tx,0,2.0 / (top - bottom),0,ty,0,0,-0.0002,0.,0,0,0,1);
 	}
 	,createScreenTransform: function() {
 		if(kha_Image.renderTargetsInvertedY()) {
@@ -2818,14 +3142,14 @@ $hxClasses["com.gEngine.display.IAnimation"] = com_gEngine_display_IAnimation;
 com_gEngine_display_IAnimation.__name__ = "com.gEngine.display.IAnimation";
 com_gEngine_display_IAnimation.__isInterface__ = true;
 com_gEngine_display_IAnimation.__interfaces__ = [com_gEngine_display_IDraw];
-com_gEngine_display_IAnimation.prototype = {
-	__class__: com_gEngine_display_IAnimation
-};
 var com_gEngine_display_IContainer = function() { };
 $hxClasses["com.gEngine.display.IContainer"] = com_gEngine_display_IContainer;
 com_gEngine_display_IContainer.__name__ = "com.gEngine.display.IContainer";
 com_gEngine_display_IContainer.__isInterface__ = true;
 com_gEngine_display_IContainer.__interfaces__ = [com_gEngine_display_IDraw];
+com_gEngine_display_IContainer.prototype = {
+	__class__: com_gEngine_display_IContainer
+};
 var com_gEngine_display_IRotation = function() { };
 $hxClasses["com.gEngine.display.IRotation"] = com_gEngine_display_IRotation;
 com_gEngine_display_IRotation.__name__ = "com.gEngine.display.IRotation";
@@ -2861,6 +3185,15 @@ var com_gEngine_display_Layer = function() {
 $hxClasses["com.gEngine.display.Layer"] = com_gEngine_display_Layer;
 com_gEngine_display_Layer.__name__ = "com.gEngine.display.Layer";
 com_gEngine_display_Layer.__interfaces__ = [com_gEngine_display_IContainer,com_gEngine_display_IDraw];
+com_gEngine_display_Layer.sortYCompare = function(a,b) {
+	if(a.y < b.y) {
+		return -1;
+	}
+	if(a.y > b.y) {
+		return 1;
+	}
+	return 0;
+};
 com_gEngine_display_Layer.prototype = {
 	render: function(paintMode,transform) {
 		var x = -this.pivotX;
@@ -3720,6 +4053,24 @@ com_gEngine_display_Layer.prototype = {
 		child.parent = this;
 		this.children.push(child);
 	}
+	,remove: function(child) {
+		var counter = 0;
+		child.parent = null;
+		var _g = 0;
+		var _g1 = this.children;
+		while(_g < _g1.length) {
+			var childIter = _g1[_g];
+			++_g;
+			if(childIter == child) {
+				this.children.splice(counter,1);
+				return;
+			}
+			++counter;
+		}
+	}
+	,sort: function(functionSort) {
+		haxe_ds_ArraySort.sort(this.children,functionSort);
+	}
 	,set_rotation: function(value) {
 		if(value != this.rotation) {
 			this.rotation = value;
@@ -3744,11 +4095,13 @@ var com_gEngine_display_Sprite = function(name) {
 	this.colorTransform = false;
 	this.alpha = 1;
 	this.visible = true;
+	this.offsetZ = 0;
 	this.offsetY = 0;
 	this.offsetX = 0;
 	this.pivotY = 0;
 	this.pivotX = 0;
 	this.blend = 0;
+	this.scaleZ = 1;
 	this.scaleY = 1;
 	this.scaleX = 1;
 	this.z = 0;
@@ -3795,26 +4148,264 @@ com_gEngine_display_Sprite.prototype = {
 		if(this.filter != null) {
 			this.filter.filterStart(this,paintMode,transform);
 		}
+		var _this = this.transform;
+		var m__00 = 1;
+		var m__10 = 0;
+		var m__20 = 0;
+		var m__30 = 0;
+		var m__01 = 0;
+		var m__11 = 1;
+		var m__21 = 0;
+		var m__31 = 0;
+		var m__02 = 0;
+		var m__12 = 0;
+		var m__22 = 1;
+		var m__32 = 0;
+		var m__03 = 0;
+		var m__13 = 0;
+		var m__23 = 0;
+		var m__33 = 1;
+		_this._00 = m__00;
+		_this._10 = m__10;
+		_this._20 = m__20;
+		_this._30 = m__30;
+		_this._01 = m__01;
+		_this._11 = m__11;
+		_this._21 = m__21;
+		_this._31 = m__31;
+		_this._02 = m__02;
+		_this._12 = m__12;
+		_this._22 = m__22;
+		_this._32 = m__32;
+		_this._03 = m__03;
+		_this._13 = m__13;
+		_this._23 = m__23;
+		_this._33 = m__33;
 		this.transform._00 = this.cosAng * this.scaleX;
 		this.transform._10 = -this.sinAng * this.scaleY;
 		this.transform._30 = this.x + this.pivotX;
 		this.transform._01 = this.sinAng * this.scaleX;
 		this.transform._11 = this.cosAng * this.scaleY;
 		this.transform._31 = this.y + this.pivotY;
+		this.transform._22 = this.scaleZ;
 		this.transform._32 = this.z;
-		var m = this.transform;
-		var _00 = transform._00 * m._00 + transform._10 * m._01 + transform._20 * m._02 + transform._30 * m._03;
-		var _10 = transform._00 * m._10 + transform._10 * m._11 + transform._20 * m._12 + transform._30 * m._13;
-		var _20 = transform._00 * m._20 + transform._10 * m._21 + transform._20 * m._22 + transform._30 * m._23;
-		var _30 = transform._00 * m._30 + transform._10 * m._31 + transform._20 * m._32 + transform._30 * m._33;
-		var _01 = transform._01 * m._00 + transform._11 * m._01 + transform._21 * m._02 + transform._31 * m._03;
-		var _11 = transform._01 * m._10 + transform._11 * m._11 + transform._21 * m._12 + transform._31 * m._13;
-		var _21 = transform._01 * m._20 + transform._11 * m._21 + transform._21 * m._22 + transform._31 * m._23;
-		var _31 = transform._01 * m._30 + transform._11 * m._31 + transform._21 * m._32 + transform._31 * m._33;
-		var _02 = transform._02 * m._00 + transform._12 * m._01 + transform._22 * m._02 + transform._32 * m._03;
-		var _12 = transform._02 * m._10 + transform._12 * m._11 + transform._22 * m._12 + transform._32 * m._13;
-		var _22 = transform._02 * m._20 + transform._12 * m._21 + transform._22 * m._22 + transform._32 * m._23;
-		var _32 = transform._02 * m._30 + transform._12 * m._31 + transform._22 * m._32 + transform._32 * m._33;
+		if(this.billboard) {
+			var m3 = transform._12;
+			var m4 = transform._22;
+			var m5 = transform._32;
+			var m6 = transform._13;
+			var m7 = transform._23;
+			var m8 = transform._33;
+			var c00 = transform._11 * (m4 * m8 - m5 * m7) - transform._21 * (m3 * m8 - m5 * m6) + transform._31 * (m3 * m7 - m4 * m6);
+			var m31 = transform._12;
+			var m41 = transform._22;
+			var m51 = transform._32;
+			var m61 = transform._13;
+			var m71 = transform._23;
+			var m81 = transform._33;
+			var c01 = transform._10 * (m41 * m81 - m51 * m71) - transform._20 * (m31 * m81 - m51 * m61) + transform._30 * (m31 * m71 - m41 * m61);
+			var m32 = transform._11;
+			var m42 = transform._21;
+			var m52 = transform._31;
+			var m62 = transform._13;
+			var m72 = transform._23;
+			var m82 = transform._33;
+			var c02 = transform._10 * (m42 * m82 - m52 * m72) - transform._20 * (m32 * m82 - m52 * m62) + transform._30 * (m32 * m72 - m42 * m62);
+			var m33 = transform._11;
+			var m43 = transform._21;
+			var m53 = transform._31;
+			var m63 = transform._12;
+			var m73 = transform._22;
+			var m83 = transform._32;
+			var c03 = transform._10 * (m43 * m83 - m53 * m73) - transform._20 * (m33 * m83 - m53 * m63) + transform._30 * (m33 * m73 - m43 * m63);
+			var det = transform._00 * c00 - transform._01 * c01 + transform._02 * c02 - transform._03 * c03;
+			if(Math.abs(det) < 0.000001) {
+				throw new js__$Boot_HaxeError("determinant is too small");
+			}
+			var m34 = transform._02;
+			var m44 = transform._22;
+			var m54 = transform._32;
+			var m64 = transform._03;
+			var m74 = transform._23;
+			var m84 = transform._33;
+			var c10 = transform._01 * (m44 * m84 - m54 * m74) - transform._21 * (m34 * m84 - m54 * m64) + transform._31 * (m34 * m74 - m44 * m64);
+			var m35 = transform._02;
+			var m45 = transform._22;
+			var m55 = transform._32;
+			var m65 = transform._03;
+			var m75 = transform._23;
+			var m85 = transform._33;
+			var c11 = transform._00 * (m45 * m85 - m55 * m75) - transform._20 * (m35 * m85 - m55 * m65) + transform._30 * (m35 * m75 - m45 * m65);
+			var m36 = transform._01;
+			var m46 = transform._21;
+			var m56 = transform._31;
+			var m66 = transform._03;
+			var m76 = transform._23;
+			var m86 = transform._33;
+			var c12 = transform._00 * (m46 * m86 - m56 * m76) - transform._20 * (m36 * m86 - m56 * m66) + transform._30 * (m36 * m76 - m46 * m66);
+			var m37 = transform._01;
+			var m47 = transform._21;
+			var m57 = transform._31;
+			var m67 = transform._02;
+			var m77 = transform._22;
+			var m87 = transform._32;
+			var c13 = transform._00 * (m47 * m87 - m57 * m77) - transform._20 * (m37 * m87 - m57 * m67) + transform._30 * (m37 * m77 - m47 * m67);
+			var m38 = transform._02;
+			var m48 = transform._12;
+			var m58 = transform._32;
+			var m68 = transform._03;
+			var m78 = transform._13;
+			var m88 = transform._33;
+			var c20 = transform._01 * (m48 * m88 - m58 * m78) - transform._11 * (m38 * m88 - m58 * m68) + transform._31 * (m38 * m78 - m48 * m68);
+			var m39 = transform._02;
+			var m49 = transform._12;
+			var m59 = transform._32;
+			var m69 = transform._03;
+			var m79 = transform._13;
+			var m89 = transform._33;
+			var c21 = transform._00 * (m49 * m89 - m59 * m79) - transform._10 * (m39 * m89 - m59 * m69) + transform._30 * (m39 * m79 - m49 * m69);
+			var m310 = transform._01;
+			var m410 = transform._11;
+			var m510 = transform._31;
+			var m610 = transform._03;
+			var m710 = transform._13;
+			var m810 = transform._33;
+			var c22 = transform._00 * (m410 * m810 - m510 * m710) - transform._10 * (m310 * m810 - m510 * m610) + transform._30 * (m310 * m710 - m410 * m610);
+			var m311 = transform._01;
+			var m411 = transform._11;
+			var m511 = transform._31;
+			var m611 = transform._02;
+			var m711 = transform._12;
+			var m811 = transform._32;
+			var c23 = transform._00 * (m411 * m811 - m511 * m711) - transform._10 * (m311 * m811 - m511 * m611) + transform._30 * (m311 * m711 - m411 * m611);
+			var m312 = transform._02;
+			var m412 = transform._12;
+			var m512 = transform._22;
+			var m612 = transform._03;
+			var m712 = transform._13;
+			var m812 = transform._23;
+			var c30 = transform._01 * (m412 * m812 - m512 * m712) - transform._11 * (m312 * m812 - m512 * m612) + transform._21 * (m312 * m712 - m412 * m612);
+			var m313 = transform._02;
+			var m413 = transform._12;
+			var m513 = transform._22;
+			var m613 = transform._03;
+			var m713 = transform._13;
+			var m813 = transform._23;
+			var c31 = transform._00 * (m413 * m813 - m513 * m713) - transform._10 * (m313 * m813 - m513 * m613) + transform._20 * (m313 * m713 - m413 * m613);
+			var m314 = transform._01;
+			var m414 = transform._11;
+			var m514 = transform._21;
+			var m614 = transform._03;
+			var m714 = transform._13;
+			var m814 = transform._23;
+			var c32 = transform._00 * (m414 * m814 - m514 * m714) - transform._10 * (m314 * m814 - m514 * m614) + transform._20 * (m314 * m714 - m414 * m614);
+			var m315 = transform._01;
+			var m415 = transform._11;
+			var m515 = transform._21;
+			var m615 = transform._02;
+			var m715 = transform._12;
+			var m815 = transform._22;
+			var c33 = transform._00 * (m415 * m815 - m515 * m715) - transform._10 * (m315 * m815 - m515 * m615) + transform._20 * (m315 * m715 - m415 * m615);
+			var invdet = 1.0 / det;
+			var rotation__00 = c00 * invdet;
+			var rotation__10 = -c01 * invdet;
+			var rotation__20 = c02 * invdet;
+			var rotation__30 = -c03 * invdet;
+			var rotation__01 = -c10 * invdet;
+			var rotation__11 = c11 * invdet;
+			var rotation__21 = -c12 * invdet;
+			var rotation__31 = c13 * invdet;
+			var rotation__02 = c20 * invdet;
+			var rotation__12 = -c21 * invdet;
+			var rotation__22 = c22 * invdet;
+			var rotation__32 = -c23 * invdet;
+			var rotation__03 = -c30 * invdet;
+			var rotation__13 = c31 * invdet;
+			var rotation__23 = -c32 * invdet;
+			var rotation__33 = c33 * invdet;
+			rotation__32 = 0;
+			rotation__31 = rotation__32;
+			rotation__30 = rotation__31;
+			var _this1 = this.transform;
+			var _this2 = this.transform;
+			var _10 = _this2._00 * rotation__10 + _this2._10 * rotation__11 + _this2._20 * rotation__12 + _this2._30 * rotation__13;
+			var _20 = _this2._00 * rotation__20 + _this2._10 * rotation__21 + _this2._20 * rotation__22 + _this2._30 * rotation__23;
+			var _30 = _this2._00 * rotation__30 + _this2._10 * rotation__31 + _this2._20 * rotation__32 + _this2._30 * rotation__33;
+			var _11 = _this2._01 * rotation__10 + _this2._11 * rotation__11 + _this2._21 * rotation__12 + _this2._31 * rotation__13;
+			var _21 = _this2._01 * rotation__20 + _this2._11 * rotation__21 + _this2._21 * rotation__22 + _this2._31 * rotation__23;
+			var _31 = _this2._01 * rotation__30 + _this2._11 * rotation__31 + _this2._21 * rotation__32 + _this2._31 * rotation__33;
+			var _12 = _this2._02 * rotation__10 + _this2._12 * rotation__11 + _this2._22 * rotation__12 + _this2._32 * rotation__13;
+			var _22 = _this2._02 * rotation__20 + _this2._12 * rotation__21 + _this2._22 * rotation__22 + _this2._32 * rotation__23;
+			var _32 = _this2._02 * rotation__30 + _this2._12 * rotation__31 + _this2._22 * rotation__32 + _this2._32 * rotation__33;
+			var _13 = _this2._03 * rotation__10 + _this2._13 * rotation__11 + _this2._23 * rotation__12 + _this2._33 * rotation__13;
+			var _23 = _this2._03 * rotation__20 + _this2._13 * rotation__21 + _this2._23 * rotation__22 + _this2._33 * rotation__23;
+			var _33 = _this2._03 * rotation__30 + _this2._13 * rotation__31 + _this2._23 * rotation__32 + _this2._33 * rotation__33;
+			_this1._00 = _this2._00 * rotation__00 + _this2._10 * rotation__01 + _this2._20 * rotation__02 + _this2._30 * rotation__03;
+			_this1._10 = _10;
+			_this1._20 = _20;
+			_this1._30 = _30;
+			_this1._01 = _this2._01 * rotation__00 + _this2._11 * rotation__01 + _this2._21 * rotation__02 + _this2._31 * rotation__03;
+			_this1._11 = _11;
+			_this1._21 = _21;
+			_this1._31 = _31;
+			_this1._02 = _this2._02 * rotation__00 + _this2._12 * rotation__01 + _this2._22 * rotation__02 + _this2._32 * rotation__03;
+			_this1._12 = _12;
+			_this1._22 = _22;
+			_this1._32 = _32;
+			_this1._03 = _this2._03 * rotation__00 + _this2._13 * rotation__01 + _this2._23 * rotation__02 + _this2._33 * rotation__03;
+			_this1._13 = _13;
+			_this1._23 = _23;
+			_this1._33 = _33;
+		}
+		if(this.rotation3d != null) {
+			var _this3 = this.transform;
+			var _this4 = this.transform;
+			var m = this.rotation3d;
+			var _101 = _this4._00 * m._10 + _this4._10 * m._11 + _this4._20 * m._12 + _this4._30 * m._13;
+			var _201 = _this4._00 * m._20 + _this4._10 * m._21 + _this4._20 * m._22 + _this4._30 * m._23;
+			var _301 = _this4._00 * m._30 + _this4._10 * m._31 + _this4._20 * m._32 + _this4._30 * m._33;
+			var _01 = _this4._01 * m._00 + _this4._11 * m._01 + _this4._21 * m._02 + _this4._31 * m._03;
+			var _111 = _this4._01 * m._10 + _this4._11 * m._11 + _this4._21 * m._12 + _this4._31 * m._13;
+			var _211 = _this4._01 * m._20 + _this4._11 * m._21 + _this4._21 * m._22 + _this4._31 * m._23;
+			var _311 = _this4._01 * m._30 + _this4._11 * m._31 + _this4._21 * m._32 + _this4._31 * m._33;
+			var _02 = _this4._02 * m._00 + _this4._12 * m._01 + _this4._22 * m._02 + _this4._32 * m._03;
+			var _121 = _this4._02 * m._10 + _this4._12 * m._11 + _this4._22 * m._12 + _this4._32 * m._13;
+			var _221 = _this4._02 * m._20 + _this4._12 * m._21 + _this4._22 * m._22 + _this4._32 * m._23;
+			var _321 = _this4._02 * m._30 + _this4._12 * m._31 + _this4._22 * m._32 + _this4._32 * m._33;
+			var _03 = _this4._03 * m._00 + _this4._13 * m._01 + _this4._23 * m._02 + _this4._33 * m._03;
+			var _131 = _this4._03 * m._10 + _this4._13 * m._11 + _this4._23 * m._12 + _this4._33 * m._13;
+			var _231 = _this4._03 * m._20 + _this4._13 * m._21 + _this4._23 * m._22 + _this4._33 * m._23;
+			var _331 = _this4._03 * m._30 + _this4._13 * m._31 + _this4._23 * m._32 + _this4._33 * m._33;
+			_this3._00 = _this4._00 * m._00 + _this4._10 * m._01 + _this4._20 * m._02 + _this4._30 * m._03;
+			_this3._10 = _101;
+			_this3._20 = _201;
+			_this3._30 = _301;
+			_this3._01 = _01;
+			_this3._11 = _111;
+			_this3._21 = _211;
+			_this3._31 = _311;
+			_this3._02 = _02;
+			_this3._12 = _121;
+			_this3._22 = _221;
+			_this3._32 = _321;
+			_this3._03 = _03;
+			_this3._13 = _131;
+			_this3._23 = _231;
+			_this3._33 = _331;
+		}
+		var m1 = this.transform;
+		var _00 = transform._00 * m1._00 + transform._10 * m1._01 + transform._20 * m1._02 + transform._30 * m1._03;
+		var _102 = transform._00 * m1._10 + transform._10 * m1._11 + transform._20 * m1._12 + transform._30 * m1._13;
+		var _202 = transform._00 * m1._20 + transform._10 * m1._21 + transform._20 * m1._22 + transform._30 * m1._23;
+		var _302 = transform._00 * m1._30 + transform._10 * m1._31 + transform._20 * m1._32 + transform._30 * m1._33;
+		var _011 = transform._01 * m1._00 + transform._11 * m1._01 + transform._21 * m1._02 + transform._31 * m1._03;
+		var _112 = transform._01 * m1._10 + transform._11 * m1._11 + transform._21 * m1._12 + transform._31 * m1._13;
+		var _212 = transform._01 * m1._20 + transform._11 * m1._21 + transform._21 * m1._22 + transform._31 * m1._23;
+		var _312 = transform._01 * m1._30 + transform._11 * m1._31 + transform._21 * m1._32 + transform._31 * m1._33;
+		var _021 = transform._02 * m1._00 + transform._12 * m1._01 + transform._22 * m1._02 + transform._32 * m1._03;
+		var _122 = transform._02 * m1._10 + transform._12 * m1._11 + transform._22 * m1._12 + transform._32 * m1._13;
+		var _222 = transform._02 * m1._20 + transform._12 * m1._21 + transform._22 * m1._22 + transform._32 * m1._23;
+		var _322 = transform._02 * m1._30 + transform._12 * m1._31 + transform._22 * m1._32 + transform._32 * m1._33;
 		var vertexX;
 		var vertexY;
 		var frame = this.animationData.frames[this.timeline.currentFrame];
@@ -3825,9 +4416,10 @@ com_gEngine_display_Sprite.prototype = {
 		this.paintInfo.textureFilter = this.textureFilter;
 		this.paintInfo.texture = this.textureId;
 		var cameraScale = paintMode.camera.scale;
-		if(this.colorTransform || paintMode.colorTransform) {
-			var painter = com_gEngine_GEngine.get_i().getColorTransformPainter(this.blend);
+		if(this.colorTransform || paintMode.colorTransform || this.customPainter != null) {
+			var painter = this.customPainter != null ? this.customPainter : com_gEngine_GEngine.get_i().getColorTransformPainter(this.blend);
 			com_gEngine_display_Sprite.checkBatch(paintMode,this.paintInfo,frame.vertexs.length / 2 | 0,painter);
+			painter = paintMode.currentPainter;
 			var buffer = painter.getVertexBuffer();
 			var vertexBufferCounter = painter.getVertexDataCounter();
 			var redMul = this.mulRed * paintMode.mulR;
@@ -3838,160 +4430,6 @@ com_gEngine_display_Sprite.prototype = {
 			var greenAdd = this.addGreen;
 			var blueAdd = this.addBlue;
 			var alphaAdd = this.addAlpha;
-			vertexX = vertexs[0] - this.pivotX;
-			vertexY = vertexs[1] - this.pivotY;
-			var x = vertexX;
-			var y = vertexY;
-			if(y == null) {
-				y = 0;
-			}
-			if(x == null) {
-				x = 0;
-			}
-			var value_x = x;
-			var value_y = y;
-			var value_z = 0;
-			var value_w = 1;
-			var pos_x = 0;
-			var pos_y = 0;
-			var pos_z = 0;
-			pos_x = _00 * value_x + _10 * value_y + _20 * value_z + _30 * value_w;
-			pos_y = _01 * value_x + _11 * value_y + _21 * value_z + _31 * value_w;
-			pos_z = _02 * value_x + _12 * value_y + _22 * value_z + _32 * value_w;
-			var u = uvs[0];
-			var v = uvs[1];
-			var offsetPos = vertexBufferCounter;
-			buffer[offsetPos++] = pos_x + this.offsetX * cameraScale;
-			buffer[offsetPos++] = pos_y + this.offsetY * cameraScale;
-			buffer[offsetPos++] = pos_z;
-			buffer[offsetPos++] = u;
-			buffer[offsetPos++] = v;
-			buffer[offsetPos++] = redMul;
-			buffer[offsetPos++] = greenMul;
-			buffer[offsetPos++] = blueMul;
-			buffer[offsetPos++] = alphaMul;
-			buffer[offsetPos++] = redAdd;
-			buffer[offsetPos++] = greenAdd;
-			buffer[offsetPos++] = blueAdd;
-			buffer[offsetPos++] = alphaAdd;
-			vertexBufferCounter += 13;
-			vertexX = vertexs[2] - this.pivotX;
-			vertexY = vertexs[3] - this.pivotY;
-			var x1 = vertexX;
-			var y1 = vertexY;
-			if(y1 == null) {
-				y1 = 0;
-			}
-			if(x1 == null) {
-				x1 = 0;
-			}
-			var value_x1 = x1;
-			var value_y1 = y1;
-			var value_z1 = 0;
-			var value_w1 = 1;
-			var pos_x1 = 0;
-			var pos_y1 = 0;
-			var pos_z1 = 0;
-			pos_x1 = _00 * value_x1 + _10 * value_y1 + _20 * value_z1 + _30 * value_w1;
-			pos_y1 = _01 * value_x1 + _11 * value_y1 + _21 * value_z1 + _31 * value_w1;
-			pos_z1 = _02 * value_x1 + _12 * value_y1 + _22 * value_z1 + _32 * value_w1;
-			var u1 = uvs[2];
-			var v1 = uvs[3];
-			var offsetPos1 = vertexBufferCounter;
-			buffer[offsetPos1++] = pos_x1 + this.offsetX * cameraScale;
-			buffer[offsetPos1++] = pos_y1 + this.offsetY * cameraScale;
-			buffer[offsetPos1++] = pos_z1;
-			buffer[offsetPos1++] = u1;
-			buffer[offsetPos1++] = v1;
-			buffer[offsetPos1++] = redMul;
-			buffer[offsetPos1++] = greenMul;
-			buffer[offsetPos1++] = blueMul;
-			buffer[offsetPos1++] = alphaMul;
-			buffer[offsetPos1++] = redAdd;
-			buffer[offsetPos1++] = greenAdd;
-			buffer[offsetPos1++] = blueAdd;
-			buffer[offsetPos1++] = alphaAdd;
-			vertexBufferCounter += 13;
-			vertexX = vertexs[4] - this.pivotX;
-			vertexY = vertexs[5] - this.pivotY;
-			var x2 = vertexX;
-			var y2 = vertexY;
-			if(y2 == null) {
-				y2 = 0;
-			}
-			if(x2 == null) {
-				x2 = 0;
-			}
-			var value_x2 = x2;
-			var value_y2 = y2;
-			var value_z2 = 0;
-			var value_w2 = 1;
-			var pos_x2 = 0;
-			var pos_y2 = 0;
-			var pos_z2 = 0;
-			pos_x2 = _00 * value_x2 + _10 * value_y2 + _20 * value_z2 + _30 * value_w2;
-			pos_y2 = _01 * value_x2 + _11 * value_y2 + _21 * value_z2 + _31 * value_w2;
-			pos_z2 = _02 * value_x2 + _12 * value_y2 + _22 * value_z2 + _32 * value_w2;
-			var u2 = uvs[4];
-			var v2 = uvs[5];
-			var offsetPos2 = vertexBufferCounter;
-			buffer[offsetPos2++] = pos_x2 + this.offsetX * cameraScale;
-			buffer[offsetPos2++] = pos_y2 + this.offsetY * cameraScale;
-			buffer[offsetPos2++] = pos_z2;
-			buffer[offsetPos2++] = u2;
-			buffer[offsetPos2++] = v2;
-			buffer[offsetPos2++] = redMul;
-			buffer[offsetPos2++] = greenMul;
-			buffer[offsetPos2++] = blueMul;
-			buffer[offsetPos2++] = alphaMul;
-			buffer[offsetPos2++] = redAdd;
-			buffer[offsetPos2++] = greenAdd;
-			buffer[offsetPos2++] = blueAdd;
-			buffer[offsetPos2++] = alphaAdd;
-			vertexBufferCounter += 13;
-			vertexX = vertexs[6] - this.pivotX;
-			vertexY = vertexs[7] - this.pivotY;
-			var x3 = vertexX;
-			var y3 = vertexY;
-			if(y3 == null) {
-				y3 = 0;
-			}
-			if(x3 == null) {
-				x3 = 0;
-			}
-			var value_x3 = x3;
-			var value_y3 = y3;
-			var value_z3 = 0;
-			var value_w3 = 1;
-			var pos_x3 = 0;
-			var pos_y3 = 0;
-			var pos_z3 = 0;
-			pos_x3 = _00 * value_x3 + _10 * value_y3 + _20 * value_z3 + _30 * value_w3;
-			pos_y3 = _01 * value_x3 + _11 * value_y3 + _21 * value_z3 + _31 * value_w3;
-			pos_z3 = _02 * value_x3 + _12 * value_y3 + _22 * value_z3 + _32 * value_w3;
-			var u3 = uvs[6];
-			var v3 = uvs[7];
-			var offsetPos3 = vertexBufferCounter;
-			buffer[offsetPos3++] = pos_x3 + this.offsetX * cameraScale;
-			buffer[offsetPos3++] = pos_y3 + this.offsetY * cameraScale;
-			buffer[offsetPos3++] = pos_z3;
-			buffer[offsetPos3++] = u3;
-			buffer[offsetPos3++] = v3;
-			buffer[offsetPos3++] = redMul;
-			buffer[offsetPos3++] = greenMul;
-			buffer[offsetPos3++] = blueMul;
-			buffer[offsetPos3++] = alphaMul;
-			buffer[offsetPos3++] = redAdd;
-			buffer[offsetPos3++] = greenAdd;
-			buffer[offsetPos3++] = blueAdd;
-			buffer[offsetPos3++] = alphaAdd;
-			vertexBufferCounter += 13;
-			painter.setVertexDataCounter(vertexBufferCounter);
-		} else if(this.alpha != 1) {
-			var painter1 = com_gEngine_GEngine.get_i().getAlphaPainter(this.blend);
-			com_gEngine_display_Sprite.checkBatch(paintMode,this.paintInfo,frame.vertexs.length / 2 | 0,painter1);
-			var buffer1 = painter1.getVertexBuffer();
-			var vertexBufferCounter1 = painter1.getVertexDataCounter();
 			var vertexIndex = 0;
 			var uvIndex = 0;
 			var _g = 0;
@@ -3999,37 +4437,49 @@ com_gEngine_display_Sprite.prototype = {
 				++_g;
 				vertexX = vertexs[vertexIndex++] - this.pivotX;
 				vertexY = vertexs[vertexIndex++] - this.pivotY;
-				var x4 = vertexX;
-				var y4 = vertexY;
-				if(y4 == null) {
-					y4 = 0;
+				var x = vertexX;
+				var y = vertexY;
+				if(y == null) {
+					y = 0;
 				}
-				if(x4 == null) {
-					x4 = 0;
+				if(x == null) {
+					x = 0;
 				}
-				var value_x4 = x4;
-				var value_y4 = y4;
-				var value_z4 = 0;
-				var value_w4 = 1;
-				var pos_x4 = 0;
-				var pos_y4 = 0;
-				var pos_z4 = 0;
-				pos_x4 = _00 * value_x4 + _10 * value_y4 + _20 * value_z4 + _30 * value_w4;
-				pos_y4 = _01 * value_x4 + _11 * value_y4 + _21 * value_z4 + _31 * value_w4;
-				pos_z4 = _02 * value_x4 + _12 * value_y4 + _22 * value_z4 + _32 * value_w4;
-				buffer1[vertexBufferCounter1++] = pos_x4 + this.offsetX * cameraScale;
-				buffer1[vertexBufferCounter1++] = pos_y4 + this.offsetY * cameraScale;
-				buffer1[vertexBufferCounter1++] = pos_z4;
-				buffer1[vertexBufferCounter1++] = uvs[uvIndex++];
-				buffer1[vertexBufferCounter1++] = uvs[uvIndex++];
-				buffer1[vertexBufferCounter1++] = this.alpha;
+				var value_x = x;
+				var value_y = y;
+				var value_z = 0;
+				var value_w = 1;
+				var pos_x = 0;
+				var pos_y = 0;
+				var pos_z = 0;
+				pos_x = _00 * value_x + _102 * value_y + _202 * value_z + _302 * value_w;
+				pos_y = _011 * value_x + _112 * value_y + _212 * value_z + _312 * value_w;
+				pos_z = _021 * value_x + _122 * value_y + _222 * value_z + _322 * value_w;
+				var u = uvs[uvIndex++];
+				var v = uvs[uvIndex++];
+				var offsetPos = vertexBufferCounter;
+				buffer[offsetPos++] = pos_x + this.offsetX * cameraScale;
+				buffer[offsetPos++] = pos_y + this.offsetY * cameraScale;
+				buffer[offsetPos++] = pos_z + this.offsetZ;
+				buffer[offsetPos++] = u;
+				buffer[offsetPos++] = v;
+				buffer[offsetPos++] = redMul;
+				buffer[offsetPos++] = greenMul;
+				buffer[offsetPos++] = blueMul;
+				buffer[offsetPos++] = alphaMul;
+				buffer[offsetPos++] = redAdd;
+				buffer[offsetPos++] = greenAdd;
+				buffer[offsetPos++] = blueAdd;
+				buffer[offsetPos++] = alphaAdd;
+				vertexBufferCounter += 13;
 			}
-			painter1.setVertexDataCounter(vertexBufferCounter1);
-		} else {
-			var painter2 = com_gEngine_GEngine.get_i().getSimplePainter(this.blend);
-			com_gEngine_display_Sprite.checkBatch(paintMode,this.paintInfo,frame.vertexs.length / 2 | 0,painter2);
-			var buffer2 = painter2.getVertexBuffer();
-			var vertexBufferCounter2 = painter2.getVertexDataCounter();
+			painter.setVertexDataCounter(vertexBufferCounter);
+		} else if(this.alpha != 1) {
+			var painter1 = com_gEngine_GEngine.get_i().getAlphaPainter(this.blend);
+			com_gEngine_display_Sprite.checkBatch(paintMode,this.paintInfo,frame.vertexs.length / 2 | 0,painter1);
+			painter1 = paintMode.currentPainter;
+			var buffer1 = painter1.getVertexBuffer();
+			var vertexBufferCounter1 = painter1.getVertexDataCounter();
 			var vertexIndex1 = 0;
 			var uvIndex1 = 0;
 			var _g1 = 0;
@@ -4037,29 +4487,68 @@ com_gEngine_display_Sprite.prototype = {
 				++_g1;
 				vertexX = vertexs[vertexIndex1++] - this.pivotX;
 				vertexY = vertexs[vertexIndex1++] - this.pivotY;
-				var x5 = vertexX;
-				var y5 = vertexY;
-				if(y5 == null) {
-					y5 = 0;
+				var x1 = vertexX;
+				var y1 = vertexY;
+				if(y1 == null) {
+					y1 = 0;
 				}
-				if(x5 == null) {
-					x5 = 0;
+				if(x1 == null) {
+					x1 = 0;
 				}
-				var value_x5 = x5;
-				var value_y5 = y5;
-				var value_z5 = 0;
-				var value_w5 = 1;
-				var pos_x5 = 0;
-				var pos_y5 = 0;
-				var pos_z5 = 0;
-				pos_x5 = _00 * value_x5 + _10 * value_y5 + _20 * value_z5 + _30 * value_w5;
-				pos_y5 = _01 * value_x5 + _11 * value_y5 + _21 * value_z5 + _31 * value_w5;
-				pos_z5 = _02 * value_x5 + _12 * value_y5 + _22 * value_z5 + _32 * value_w5;
-				buffer2[vertexBufferCounter2++] = pos_x5 + this.offsetX * cameraScale;
-				buffer2[vertexBufferCounter2++] = pos_y5 + this.offsetY * cameraScale;
-				buffer2[vertexBufferCounter2++] = pos_z5;
-				buffer2[vertexBufferCounter2++] = uvs[uvIndex1++];
-				buffer2[vertexBufferCounter2++] = uvs[uvIndex1++];
+				var value_x1 = x1;
+				var value_y1 = y1;
+				var value_z1 = 0;
+				var value_w1 = 1;
+				var pos_x1 = 0;
+				var pos_y1 = 0;
+				var pos_z1 = 0;
+				pos_x1 = _00 * value_x1 + _102 * value_y1 + _202 * value_z1 + _302 * value_w1;
+				pos_y1 = _011 * value_x1 + _112 * value_y1 + _212 * value_z1 + _312 * value_w1;
+				pos_z1 = _021 * value_x1 + _122 * value_y1 + _222 * value_z1 + _322 * value_w1;
+				buffer1[vertexBufferCounter1++] = pos_x1 + this.offsetX * cameraScale;
+				buffer1[vertexBufferCounter1++] = pos_y1 + this.offsetY * cameraScale;
+				buffer1[vertexBufferCounter1++] = pos_z1;
+				buffer1[vertexBufferCounter1++] = uvs[uvIndex1++];
+				buffer1[vertexBufferCounter1++] = uvs[uvIndex1++];
+				buffer1[vertexBufferCounter1++] = this.alpha;
+			}
+			painter1.setVertexDataCounter(vertexBufferCounter1);
+		} else {
+			var painter2 = com_gEngine_GEngine.get_i().getSimplePainter(this.blend);
+			com_gEngine_display_Sprite.checkBatch(paintMode,this.paintInfo,frame.vertexs.length / 2 | 0,painter2);
+			painter2 = paintMode.currentPainter;
+			var buffer2 = painter2.getVertexBuffer();
+			var vertexBufferCounter2 = painter2.getVertexDataCounter();
+			var vertexIndex2 = 0;
+			var uvIndex2 = 0;
+			var _g2 = 0;
+			while(_g2 < 4) {
+				++_g2;
+				vertexX = vertexs[vertexIndex2++] - this.pivotX;
+				vertexY = vertexs[vertexIndex2++] - this.pivotY;
+				var x2 = vertexX;
+				var y2 = vertexY;
+				if(y2 == null) {
+					y2 = 0;
+				}
+				if(x2 == null) {
+					x2 = 0;
+				}
+				var value_x2 = x2;
+				var value_y2 = y2;
+				var value_z2 = 0;
+				var value_w2 = 1;
+				var pos_x2 = 0;
+				var pos_y2 = 0;
+				var pos_z2 = 0;
+				pos_x2 = _00 * value_x2 + _102 * value_y2 + _202 * value_z2 + _302 * value_w2;
+				pos_y2 = _011 * value_x2 + _112 * value_y2 + _212 * value_z2 + _312 * value_w2;
+				pos_z2 = _021 * value_x2 + _122 * value_y2 + _222 * value_z2 + _322 * value_w2;
+				buffer2[vertexBufferCounter2++] = pos_x2 + this.offsetX * cameraScale;
+				buffer2[vertexBufferCounter2++] = pos_y2 + this.offsetY * cameraScale;
+				buffer2[vertexBufferCounter2++] = pos_z2;
+				buffer2[vertexBufferCounter2++] = uvs[uvIndex2++];
+				buffer2[vertexBufferCounter2++] = uvs[uvIndex2++];
 			}
 			painter2.setVertexDataCounter(vertexBufferCounter2);
 		}
@@ -4067,27 +4556,290 @@ com_gEngine_display_Sprite.prototype = {
 			this.filter.filterEnd(paintMode);
 		}
 	}
+	,removeFromParent: function() {
+		if(this.parent != null) {
+			this.parent.remove(this);
+			this.parent = null;
+		}
+	}
+	,colorMultiplication: function(r,g,b,a) {
+		if(a == null) {
+			a = 1;
+		}
+		if(b == null) {
+			b = 1;
+		}
+		if(g == null) {
+			g = 1;
+		}
+		if(r == null) {
+			r = 1;
+		}
+		this.mulRed = r;
+		this.mulGreen = g;
+		this.mulBlue = b;
+		this.alpha = a;
+		this.colorTransform = !(this.mulRed == 1 && this.mulGreen == 1 && this.mulBlue == 1 && this.alpha == 1 && this.addRed == 0 && this.addGreen == 0 && this.addBlue == 0 && this.addAlpha == 0);
+	}
 	,getDrawArea: function(area,transform) {
+		var _this = this.transform;
+		var m__00 = 1;
+		var m__10 = 0;
+		var m__20 = 0;
+		var m__30 = 0;
+		var m__01 = 0;
+		var m__11 = 1;
+		var m__21 = 0;
+		var m__31 = 0;
+		var m__02 = 0;
+		var m__12 = 0;
+		var m__22 = 1;
+		var m__32 = 0;
+		var m__03 = 0;
+		var m__13 = 0;
+		var m__23 = 0;
+		var m__33 = 1;
+		_this._00 = m__00;
+		_this._10 = m__10;
+		_this._20 = m__20;
+		_this._30 = m__30;
+		_this._01 = m__01;
+		_this._11 = m__11;
+		_this._21 = m__21;
+		_this._31 = m__31;
+		_this._02 = m__02;
+		_this._12 = m__12;
+		_this._22 = m__22;
+		_this._32 = m__32;
+		_this._03 = m__03;
+		_this._13 = m__13;
+		_this._23 = m__23;
+		_this._33 = m__33;
 		this.transform._00 = this.cosAng * this.scaleX;
 		this.transform._10 = -this.sinAng * this.scaleY;
 		this.transform._30 = this.x + this.pivotX;
 		this.transform._01 = this.sinAng * this.scaleX;
 		this.transform._11 = this.cosAng * this.scaleY;
 		this.transform._31 = this.y + this.pivotY;
+		this.transform._22 = this.scaleZ;
 		this.transform._32 = this.z;
-		var m = this.transform;
-		var _00 = transform._00 * m._00 + transform._10 * m._01 + transform._20 * m._02 + transform._30 * m._03;
-		var _10 = transform._00 * m._10 + transform._10 * m._11 + transform._20 * m._12 + transform._30 * m._13;
-		var _20 = transform._00 * m._20 + transform._10 * m._21 + transform._20 * m._22 + transform._30 * m._23;
-		var _30 = transform._00 * m._30 + transform._10 * m._31 + transform._20 * m._32 + transform._30 * m._33;
-		var _01 = transform._01 * m._00 + transform._11 * m._01 + transform._21 * m._02 + transform._31 * m._03;
-		var _11 = transform._01 * m._10 + transform._11 * m._11 + transform._21 * m._12 + transform._31 * m._13;
-		var _21 = transform._01 * m._20 + transform._11 * m._21 + transform._21 * m._22 + transform._31 * m._23;
-		var _31 = transform._01 * m._30 + transform._11 * m._31 + transform._21 * m._32 + transform._31 * m._33;
-		var _02 = transform._02 * m._00 + transform._12 * m._01 + transform._22 * m._02 + transform._32 * m._03;
-		var _12 = transform._02 * m._10 + transform._12 * m._11 + transform._22 * m._12 + transform._32 * m._13;
-		var _22 = transform._02 * m._20 + transform._12 * m._21 + transform._22 * m._22 + transform._32 * m._23;
-		var _32 = transform._02 * m._30 + transform._12 * m._31 + transform._22 * m._32 + transform._32 * m._33;
+		if(this.billboard) {
+			var m3 = transform._12;
+			var m4 = transform._22;
+			var m5 = transform._32;
+			var m6 = transform._13;
+			var m7 = transform._23;
+			var m8 = transform._33;
+			var c00 = transform._11 * (m4 * m8 - m5 * m7) - transform._21 * (m3 * m8 - m5 * m6) + transform._31 * (m3 * m7 - m4 * m6);
+			var m31 = transform._12;
+			var m41 = transform._22;
+			var m51 = transform._32;
+			var m61 = transform._13;
+			var m71 = transform._23;
+			var m81 = transform._33;
+			var c01 = transform._10 * (m41 * m81 - m51 * m71) - transform._20 * (m31 * m81 - m51 * m61) + transform._30 * (m31 * m71 - m41 * m61);
+			var m32 = transform._11;
+			var m42 = transform._21;
+			var m52 = transform._31;
+			var m62 = transform._13;
+			var m72 = transform._23;
+			var m82 = transform._33;
+			var c02 = transform._10 * (m42 * m82 - m52 * m72) - transform._20 * (m32 * m82 - m52 * m62) + transform._30 * (m32 * m72 - m42 * m62);
+			var m33 = transform._11;
+			var m43 = transform._21;
+			var m53 = transform._31;
+			var m63 = transform._12;
+			var m73 = transform._22;
+			var m83 = transform._32;
+			var c03 = transform._10 * (m43 * m83 - m53 * m73) - transform._20 * (m33 * m83 - m53 * m63) + transform._30 * (m33 * m73 - m43 * m63);
+			var det = transform._00 * c00 - transform._01 * c01 + transform._02 * c02 - transform._03 * c03;
+			if(Math.abs(det) < 0.000001) {
+				throw new js__$Boot_HaxeError("determinant is too small");
+			}
+			var m34 = transform._02;
+			var m44 = transform._22;
+			var m54 = transform._32;
+			var m64 = transform._03;
+			var m74 = transform._23;
+			var m84 = transform._33;
+			var c10 = transform._01 * (m44 * m84 - m54 * m74) - transform._21 * (m34 * m84 - m54 * m64) + transform._31 * (m34 * m74 - m44 * m64);
+			var m35 = transform._02;
+			var m45 = transform._22;
+			var m55 = transform._32;
+			var m65 = transform._03;
+			var m75 = transform._23;
+			var m85 = transform._33;
+			var c11 = transform._00 * (m45 * m85 - m55 * m75) - transform._20 * (m35 * m85 - m55 * m65) + transform._30 * (m35 * m75 - m45 * m65);
+			var m36 = transform._01;
+			var m46 = transform._21;
+			var m56 = transform._31;
+			var m66 = transform._03;
+			var m76 = transform._23;
+			var m86 = transform._33;
+			var c12 = transform._00 * (m46 * m86 - m56 * m76) - transform._20 * (m36 * m86 - m56 * m66) + transform._30 * (m36 * m76 - m46 * m66);
+			var m37 = transform._01;
+			var m47 = transform._21;
+			var m57 = transform._31;
+			var m67 = transform._02;
+			var m77 = transform._22;
+			var m87 = transform._32;
+			var c13 = transform._00 * (m47 * m87 - m57 * m77) - transform._20 * (m37 * m87 - m57 * m67) + transform._30 * (m37 * m77 - m47 * m67);
+			var m38 = transform._02;
+			var m48 = transform._12;
+			var m58 = transform._32;
+			var m68 = transform._03;
+			var m78 = transform._13;
+			var m88 = transform._33;
+			var c20 = transform._01 * (m48 * m88 - m58 * m78) - transform._11 * (m38 * m88 - m58 * m68) + transform._31 * (m38 * m78 - m48 * m68);
+			var m39 = transform._02;
+			var m49 = transform._12;
+			var m59 = transform._32;
+			var m69 = transform._03;
+			var m79 = transform._13;
+			var m89 = transform._33;
+			var c21 = transform._00 * (m49 * m89 - m59 * m79) - transform._10 * (m39 * m89 - m59 * m69) + transform._30 * (m39 * m79 - m49 * m69);
+			var m310 = transform._01;
+			var m410 = transform._11;
+			var m510 = transform._31;
+			var m610 = transform._03;
+			var m710 = transform._13;
+			var m810 = transform._33;
+			var c22 = transform._00 * (m410 * m810 - m510 * m710) - transform._10 * (m310 * m810 - m510 * m610) + transform._30 * (m310 * m710 - m410 * m610);
+			var m311 = transform._01;
+			var m411 = transform._11;
+			var m511 = transform._31;
+			var m611 = transform._02;
+			var m711 = transform._12;
+			var m811 = transform._32;
+			var c23 = transform._00 * (m411 * m811 - m511 * m711) - transform._10 * (m311 * m811 - m511 * m611) + transform._30 * (m311 * m711 - m411 * m611);
+			var m312 = transform._02;
+			var m412 = transform._12;
+			var m512 = transform._22;
+			var m612 = transform._03;
+			var m712 = transform._13;
+			var m812 = transform._23;
+			var c30 = transform._01 * (m412 * m812 - m512 * m712) - transform._11 * (m312 * m812 - m512 * m612) + transform._21 * (m312 * m712 - m412 * m612);
+			var m313 = transform._02;
+			var m413 = transform._12;
+			var m513 = transform._22;
+			var m613 = transform._03;
+			var m713 = transform._13;
+			var m813 = transform._23;
+			var c31 = transform._00 * (m413 * m813 - m513 * m713) - transform._10 * (m313 * m813 - m513 * m613) + transform._20 * (m313 * m713 - m413 * m613);
+			var m314 = transform._01;
+			var m414 = transform._11;
+			var m514 = transform._21;
+			var m614 = transform._03;
+			var m714 = transform._13;
+			var m814 = transform._23;
+			var c32 = transform._00 * (m414 * m814 - m514 * m714) - transform._10 * (m314 * m814 - m514 * m614) + transform._20 * (m314 * m714 - m414 * m614);
+			var m315 = transform._01;
+			var m415 = transform._11;
+			var m515 = transform._21;
+			var m615 = transform._02;
+			var m715 = transform._12;
+			var m815 = transform._22;
+			var c33 = transform._00 * (m415 * m815 - m515 * m715) - transform._10 * (m315 * m815 - m515 * m615) + transform._20 * (m315 * m715 - m415 * m615);
+			var invdet = 1.0 / det;
+			var rotation__00 = c00 * invdet;
+			var rotation__10 = -c01 * invdet;
+			var rotation__20 = c02 * invdet;
+			var rotation__30 = -c03 * invdet;
+			var rotation__01 = -c10 * invdet;
+			var rotation__11 = c11 * invdet;
+			var rotation__21 = -c12 * invdet;
+			var rotation__31 = c13 * invdet;
+			var rotation__02 = c20 * invdet;
+			var rotation__12 = -c21 * invdet;
+			var rotation__22 = c22 * invdet;
+			var rotation__32 = -c23 * invdet;
+			var rotation__03 = -c30 * invdet;
+			var rotation__13 = c31 * invdet;
+			var rotation__23 = -c32 * invdet;
+			var rotation__33 = c33 * invdet;
+			rotation__32 = 0;
+			rotation__31 = rotation__32;
+			rotation__30 = rotation__31;
+			var _this1 = this.transform;
+			var _this2 = this.transform;
+			var _10 = _this2._00 * rotation__10 + _this2._10 * rotation__11 + _this2._20 * rotation__12 + _this2._30 * rotation__13;
+			var _20 = _this2._00 * rotation__20 + _this2._10 * rotation__21 + _this2._20 * rotation__22 + _this2._30 * rotation__23;
+			var _30 = _this2._00 * rotation__30 + _this2._10 * rotation__31 + _this2._20 * rotation__32 + _this2._30 * rotation__33;
+			var _11 = _this2._01 * rotation__10 + _this2._11 * rotation__11 + _this2._21 * rotation__12 + _this2._31 * rotation__13;
+			var _21 = _this2._01 * rotation__20 + _this2._11 * rotation__21 + _this2._21 * rotation__22 + _this2._31 * rotation__23;
+			var _31 = _this2._01 * rotation__30 + _this2._11 * rotation__31 + _this2._21 * rotation__32 + _this2._31 * rotation__33;
+			var _12 = _this2._02 * rotation__10 + _this2._12 * rotation__11 + _this2._22 * rotation__12 + _this2._32 * rotation__13;
+			var _22 = _this2._02 * rotation__20 + _this2._12 * rotation__21 + _this2._22 * rotation__22 + _this2._32 * rotation__23;
+			var _32 = _this2._02 * rotation__30 + _this2._12 * rotation__31 + _this2._22 * rotation__32 + _this2._32 * rotation__33;
+			var _13 = _this2._03 * rotation__10 + _this2._13 * rotation__11 + _this2._23 * rotation__12 + _this2._33 * rotation__13;
+			var _23 = _this2._03 * rotation__20 + _this2._13 * rotation__21 + _this2._23 * rotation__22 + _this2._33 * rotation__23;
+			var _33 = _this2._03 * rotation__30 + _this2._13 * rotation__31 + _this2._23 * rotation__32 + _this2._33 * rotation__33;
+			_this1._00 = _this2._00 * rotation__00 + _this2._10 * rotation__01 + _this2._20 * rotation__02 + _this2._30 * rotation__03;
+			_this1._10 = _10;
+			_this1._20 = _20;
+			_this1._30 = _30;
+			_this1._01 = _this2._01 * rotation__00 + _this2._11 * rotation__01 + _this2._21 * rotation__02 + _this2._31 * rotation__03;
+			_this1._11 = _11;
+			_this1._21 = _21;
+			_this1._31 = _31;
+			_this1._02 = _this2._02 * rotation__00 + _this2._12 * rotation__01 + _this2._22 * rotation__02 + _this2._32 * rotation__03;
+			_this1._12 = _12;
+			_this1._22 = _22;
+			_this1._32 = _32;
+			_this1._03 = _this2._03 * rotation__00 + _this2._13 * rotation__01 + _this2._23 * rotation__02 + _this2._33 * rotation__03;
+			_this1._13 = _13;
+			_this1._23 = _23;
+			_this1._33 = _33;
+		}
+		if(this.rotation3d != null) {
+			var _this3 = this.transform;
+			var _this4 = this.transform;
+			var m = this.rotation3d;
+			var _101 = _this4._00 * m._10 + _this4._10 * m._11 + _this4._20 * m._12 + _this4._30 * m._13;
+			var _201 = _this4._00 * m._20 + _this4._10 * m._21 + _this4._20 * m._22 + _this4._30 * m._23;
+			var _301 = _this4._00 * m._30 + _this4._10 * m._31 + _this4._20 * m._32 + _this4._30 * m._33;
+			var _01 = _this4._01 * m._00 + _this4._11 * m._01 + _this4._21 * m._02 + _this4._31 * m._03;
+			var _111 = _this4._01 * m._10 + _this4._11 * m._11 + _this4._21 * m._12 + _this4._31 * m._13;
+			var _211 = _this4._01 * m._20 + _this4._11 * m._21 + _this4._21 * m._22 + _this4._31 * m._23;
+			var _311 = _this4._01 * m._30 + _this4._11 * m._31 + _this4._21 * m._32 + _this4._31 * m._33;
+			var _02 = _this4._02 * m._00 + _this4._12 * m._01 + _this4._22 * m._02 + _this4._32 * m._03;
+			var _121 = _this4._02 * m._10 + _this4._12 * m._11 + _this4._22 * m._12 + _this4._32 * m._13;
+			var _221 = _this4._02 * m._20 + _this4._12 * m._21 + _this4._22 * m._22 + _this4._32 * m._23;
+			var _321 = _this4._02 * m._30 + _this4._12 * m._31 + _this4._22 * m._32 + _this4._32 * m._33;
+			var _03 = _this4._03 * m._00 + _this4._13 * m._01 + _this4._23 * m._02 + _this4._33 * m._03;
+			var _131 = _this4._03 * m._10 + _this4._13 * m._11 + _this4._23 * m._12 + _this4._33 * m._13;
+			var _231 = _this4._03 * m._20 + _this4._13 * m._21 + _this4._23 * m._22 + _this4._33 * m._23;
+			var _331 = _this4._03 * m._30 + _this4._13 * m._31 + _this4._23 * m._32 + _this4._33 * m._33;
+			_this3._00 = _this4._00 * m._00 + _this4._10 * m._01 + _this4._20 * m._02 + _this4._30 * m._03;
+			_this3._10 = _101;
+			_this3._20 = _201;
+			_this3._30 = _301;
+			_this3._01 = _01;
+			_this3._11 = _111;
+			_this3._21 = _211;
+			_this3._31 = _311;
+			_this3._02 = _02;
+			_this3._12 = _121;
+			_this3._22 = _221;
+			_this3._32 = _321;
+			_this3._03 = _03;
+			_this3._13 = _131;
+			_this3._23 = _231;
+			_this3._33 = _331;
+		}
+		var m1 = this.transform;
+		var _00 = transform._00 * m1._00 + transform._10 * m1._01 + transform._20 * m1._02 + transform._30 * m1._03;
+		var _102 = transform._00 * m1._10 + transform._10 * m1._11 + transform._20 * m1._12 + transform._30 * m1._13;
+		var _202 = transform._00 * m1._20 + transform._10 * m1._21 + transform._20 * m1._22 + transform._30 * m1._23;
+		var _302 = transform._00 * m1._30 + transform._10 * m1._31 + transform._20 * m1._32 + transform._30 * m1._33;
+		var _011 = transform._01 * m1._00 + transform._11 * m1._01 + transform._21 * m1._02 + transform._31 * m1._03;
+		var _112 = transform._01 * m1._10 + transform._11 * m1._11 + transform._21 * m1._12 + transform._31 * m1._13;
+		var _212 = transform._01 * m1._20 + transform._11 * m1._21 + transform._21 * m1._22 + transform._31 * m1._23;
+		var _312 = transform._01 * m1._30 + transform._11 * m1._31 + transform._21 * m1._32 + transform._31 * m1._33;
+		var _021 = transform._02 * m1._00 + transform._12 * m1._01 + transform._22 * m1._02 + transform._32 * m1._03;
+		var _122 = transform._02 * m1._10 + transform._12 * m1._11 + transform._22 * m1._12 + transform._32 * m1._13;
+		var _222 = transform._02 * m1._20 + transform._12 * m1._21 + transform._22 * m1._22 + transform._32 * m1._23;
+		var _322 = transform._02 * m1._30 + transform._12 * m1._31 + transform._22 * m1._32 + transform._32 * m1._33;
 		var drawArea = this.animationData.frames[this.timeline.currentFrame].drawArea;
 		if(drawArea.maxX != 16) {
 			drawArea.minX = drawArea.minX;
@@ -4107,9 +4859,9 @@ com_gEngine_display_Sprite.prototype = {
 		var multvec_x = 0;
 		var multvec_y = 0;
 		var multvec_z = 0;
-		multvec_x = _00 * value_x + _10 * value_y + _20 * value_z + _30 * value_w;
-		multvec_y = _01 * value_x + _11 * value_y + _21 * value_z + _31 * value_w;
-		multvec_z = _02 * value_x + _12 * value_y + _22 * value_z + _32 * value_w;
+		multvec_x = _00 * value_x + _102 * value_y + _202 * value_z + _302 * value_w;
+		multvec_y = _011 * value_x + _112 * value_y + _212 * value_z + _312 * value_w;
+		multvec_z = _021 * value_x + _122 * value_y + _222 * value_z + _322 * value_w;
 		if(area.min.x > multvec_x) {
 			area.min.x = multvec_x;
 		}
@@ -4144,9 +4896,9 @@ com_gEngine_display_Sprite.prototype = {
 		var multvec_x1 = 0;
 		var multvec_y1 = 0;
 		var multvec_z1 = 0;
-		multvec_x1 = _00 * value_x1 + _10 * value_y1 + _20 * value_z1 + _30 * value_w1;
-		multvec_y1 = _01 * value_x1 + _11 * value_y1 + _21 * value_z1 + _31 * value_w1;
-		multvec_z1 = _02 * value_x1 + _12 * value_y1 + _22 * value_z1 + _32 * value_w1;
+		multvec_x1 = _00 * value_x1 + _102 * value_y1 + _202 * value_z1 + _302 * value_w1;
+		multvec_y1 = _011 * value_x1 + _112 * value_y1 + _212 * value_z1 + _312 * value_w1;
+		multvec_z1 = _021 * value_x1 + _122 * value_y1 + _222 * value_z1 + _322 * value_w1;
 		if(area.min.x > multvec_x1) {
 			area.min.x = multvec_x1;
 		}
@@ -4181,9 +4933,9 @@ com_gEngine_display_Sprite.prototype = {
 		var multvec_x2 = 0;
 		var multvec_y2 = 0;
 		var multvec_z2 = 0;
-		multvec_x2 = _00 * value_x2 + _10 * value_y2 + _20 * value_z2 + _30 * value_w2;
-		multvec_y2 = _01 * value_x2 + _11 * value_y2 + _21 * value_z2 + _31 * value_w2;
-		multvec_z2 = _02 * value_x2 + _12 * value_y2 + _22 * value_z2 + _32 * value_w2;
+		multvec_x2 = _00 * value_x2 + _102 * value_y2 + _202 * value_z2 + _302 * value_w2;
+		multvec_y2 = _011 * value_x2 + _112 * value_y2 + _212 * value_z2 + _312 * value_w2;
+		multvec_z2 = _021 * value_x2 + _122 * value_y2 + _222 * value_z2 + _322 * value_w2;
 		if(area.min.x > multvec_x2) {
 			area.min.x = multvec_x2;
 		}
@@ -4218,9 +4970,9 @@ com_gEngine_display_Sprite.prototype = {
 		var multvec_x3 = 0;
 		var multvec_y3 = 0;
 		var multvec_z3 = 0;
-		multvec_x3 = _00 * value_x3 + _10 * value_y3 + _20 * value_z3 + _30 * value_w3;
-		multvec_y3 = _01 * value_x3 + _11 * value_y3 + _21 * value_z3 + _31 * value_w3;
-		multvec_z3 = _02 * value_x3 + _12 * value_y3 + _22 * value_z3 + _32 * value_w3;
+		multvec_x3 = _00 * value_x3 + _102 * value_y3 + _202 * value_z3 + _302 * value_w3;
+		multvec_y3 = _011 * value_x3 + _112 * value_y3 + _212 * value_z3 + _312 * value_w3;
+		multvec_z3 = _021 * value_x3 + _122 * value_y3 + _222 * value_z3 + _322 * value_w3;
 		if(area.min.x > multvec_x3) {
 			area.min.x = multvec_x3;
 		}
@@ -4240,6 +4992,12 @@ com_gEngine_display_Sprite.prototype = {
 			area.maxZ = multvec_z3;
 		}
 		area.isEmpty = false;
+	}
+	,width: function() {
+		return this.animationData.frames[this.timeline.currentFrame].drawArea.get_width();
+	}
+	,height: function() {
+		return this.animationData.frames[this.timeline.currentFrame].drawArea.get_height();
 	}
 	,set_smooth: function(value) {
 		if(!value) {
@@ -4300,6 +5058,9 @@ com_gEngine_display_Stage.prototype = {
 			stage.render();
 		}
 	}
+	,addSubStage: function(stage) {
+		this.subStages.push(stage);
+	}
 	,removeSubStage: function(stage) {
 		HxOverrides.remove(this.subStages,stage);
 	}
@@ -4328,6 +5089,170 @@ com_gEngine_display_Stage.prototype = {
 	}
 	,__class__: com_gEngine_display_Stage
 };
+var com_gEngine_display_StaticLayer = function() {
+	com_gEngine_display_Layer.call(this);
+	this.offset = new kha_math_FastMatrix4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
+};
+$hxClasses["com.gEngine.display.StaticLayer"] = com_gEngine_display_StaticLayer;
+com_gEngine_display_StaticLayer.__name__ = "com.gEngine.display.StaticLayer";
+com_gEngine_display_StaticLayer.__super__ = com_gEngine_display_Layer;
+com_gEngine_display_StaticLayer.prototype = $extend(com_gEngine_display_Layer.prototype,{
+	render: function(paintMode,transform) {
+		paintMode.render();
+		var proj = paintMode.camera.projection;
+		paintMode.camera.projection = paintMode.camera.orthogonal;
+		var _this = this.offset;
+		var m__00 = 1;
+		var m__10 = 0;
+		var m__20 = 0;
+		var m__01 = 0;
+		var m__11 = 1;
+		var m__21 = 0;
+		var m__02 = 0;
+		var m__12 = 0;
+		var m__22 = 1;
+		var m__32 = 0;
+		var m__03 = 0;
+		var m__13 = 0;
+		var m__23 = 0;
+		var m__33 = 1;
+		_this._00 = m__00;
+		_this._10 = m__10;
+		_this._20 = m__20;
+		_this._30 = -paintMode.camera.width * 0.5;
+		_this._01 = m__01;
+		_this._11 = m__11;
+		_this._21 = m__21;
+		_this._31 = -paintMode.camera.height * 0.5;
+		_this._02 = m__02;
+		_this._12 = m__12;
+		_this._22 = m__22;
+		_this._32 = m__32;
+		_this._03 = m__03;
+		_this._13 = m__13;
+		_this._23 = m__23;
+		_this._33 = m__33;
+		com_gEngine_display_Layer.prototype.render.call(this,paintMode,this.offset);
+		paintMode.render();
+		paintMode.camera.projection = proj;
+	}
+	,__class__: com_gEngine_display_StaticLayer
+});
+var com_gEngine_display_Text = function(type) {
+	this.bakedQuadCache = new kha_AlignedQuad();
+	this.sourceFontSize = 0;
+	this.fontSize = 0;
+	this.text = "";
+	com_gEngine_display_Layer.call(this);
+	this.mLetters = [];
+	this.mType = type;
+	this.sourceFontSize = this.fontSize = com_basicDisplay_SpriteSheetDB.get_i().getData(type).fontSize;
+	this.set_color(-1);
+};
+$hxClasses["com.gEngine.display.Text"] = com_gEngine_display_Text;
+com_gEngine_display_Text.__name__ = "com.gEngine.display.Text";
+com_gEngine_display_Text.findIndex = function(charCode) {
+	var blocks = kha_KravurImage.charBlocks;
+	var offset = 0;
+	var _g = 0;
+	var _g1 = blocks.length / 2 | 0;
+	while(_g < _g1) {
+		var i = _g++;
+		var start = blocks[i * 2];
+		var end = blocks[i * 2 + 1];
+		if(charCode >= start && charCode <= end) {
+			return offset + charCode - start;
+		}
+		offset += end - start + 1;
+	}
+	return 0;
+};
+com_gEngine_display_Text.__super__ = com_gEngine_display_Layer;
+com_gEngine_display_Text.prototype = $extend(com_gEngine_display_Layer.prototype,{
+	set_text: function(aText) {
+		if(this.text == aText) {
+			return this.text;
+		}
+		this.text = aText;
+		var counter = 0;
+		var displayLetter;
+		var currentWordLetters = [];
+		var font = kha_Assets.fonts.get(this.mType)._get(this.fontSize);
+		var xpos = 0.;
+		var ypos = 0.;
+		var i = 0;
+		var scaleFont = this.fontSize / this.sourceFontSize;
+		var fontSize = Math.round(this.fontSize / this.sourceFontSize * this.sourceFontSize);
+		while(i < this.text.length) {
+			if(this.text.charAt(i) == "\n") {
+				++i;
+				ypos += fontSize * 0.8;
+				xpos = 0;
+				this.bakedQuadCache.xadvance = 0;
+				continue;
+			}
+			var charCodeIndex = com_gEngine_display_Text.findIndex(this.text.charCodeAt(i));
+			var q = font.getBakedQuad(this.bakedQuadCache,charCodeIndex,xpos,ypos);
+			if(q != null) {
+				if(this.mLetters.length <= counter) {
+					displayLetter = new com_gEngine_display_Sprite(this.mType);
+					displayLetter.set_smooth(this.smooth);
+					displayLetter.colorMultiplication(((this.color & 16711680) >>> 16) * 0.00392156862745098,((this.color & 65280) >>> 8) * 0.00392156862745098,(this.color & 255) * 0.00392156862745098,(this.color >>> 24) * 0.00392156862745098);
+					this.addChild(displayLetter);
+					this.mLetters.push(displayLetter);
+				} else {
+					displayLetter = this.mLetters[counter];
+					if(displayLetter.parent == null) {
+						this.addChild(displayLetter);
+					}
+				}
+				++counter;
+				displayLetter.timeline.gotoAndStop(charCodeIndex);
+				currentWordLetters.push(displayLetter);
+				displayLetter.x = xpos;
+				displayLetter.y = ypos;
+				displayLetter.scaleX = displayLetter.scaleY = scaleFont;
+				xpos += q.xadvance;
+			}
+			++i;
+		}
+		var _g = counter;
+		var _g1 = this.mLetters.length;
+		while(_g < _g1) {
+			var k = _g++;
+			this.mLetters[k].removeFromParent();
+		}
+		return aText;
+	}
+	,width: function() {
+		var min = Infinity;
+		var max = -Infinity;
+		var _g = 0;
+		var _g1 = this.mLetters;
+		while(_g < _g1.length) {
+			var letter = _g1[_g];
+			++_g;
+			if(letter.x < min) {
+				min = letter.x;
+			} else if(letter.x + letter.width() > max) {
+				max = letter.x + letter.width();
+			}
+		}
+		return max - min;
+	}
+	,set_color: function(color) {
+		var _g = 0;
+		var _g1 = this.mLetters;
+		while(_g < _g1.length) {
+			var child = _g1[_g];
+			++_g;
+			child.colorMultiplication(((color & 16711680) >>> 16) * 0.00392156862745098,((color & 65280) >>> 8) * 0.00392156862745098,(color & 255) * 0.00392156862745098,(color >>> 24) * 0.00392156862745098);
+		}
+		this.color = color;
+		return color;
+	}
+	,__class__: com_gEngine_display_Text
+});
 var com_gEngine_display_extra_TileMapDisplay = function(tileType,widthInTiles,heightInTiles,tileWidth,tileHeight) {
 	com_gEngine_display_Layer.call(this);
 	this.widthInTiles = widthInTiles;
@@ -4335,20 +5260,44 @@ var com_gEngine_display_extra_TileMapDisplay = function(tileType,widthInTiles,he
 	this.tileWidth = tileWidth;
 	this.tileHeight = tileHeight;
 	this.tiles = [];
+	this.orientation = [];
 	this.tile = tileType;
+	this.tile.pivotX = tileWidth * 0.5;
+	this.tile.pivotY = tileHeight * 0.5;
 	var _g = 0;
 	var _g1 = widthInTiles * heightInTiles;
 	while(_g < _g1) {
 		++_g;
 		this.tiles.push(-1);
+		this.orientation.push(0);
 	}
 };
 $hxClasses["com.gEngine.display.extra.TileMapDisplay"] = com_gEngine_display_extra_TileMapDisplay;
 com_gEngine_display_extra_TileMapDisplay.__name__ = "com.gEngine.display.extra.TileMapDisplay";
 com_gEngine_display_extra_TileMapDisplay.__super__ = com_gEngine_display_Layer;
 com_gEngine_display_extra_TileMapDisplay.prototype = $extend(com_gEngine_display_Layer.prototype,{
-	setTile2: function(index,value) {
+	setTile2: function(index,value,flipX,flipY,rotate) {
+		if(rotate == null) {
+			rotate = false;
+		}
+		if(flipY == null) {
+			flipY = false;
+		}
+		if(flipX == null) {
+			flipX = false;
+		}
 		this.tiles[index] = value;
+		var tileOrientation = 0;
+		if(flipX) {
+			tileOrientation = 1;
+		}
+		if(flipY) {
+			tileOrientation |= 2;
+		}
+		if(rotate) {
+			tileOrientation |= 4;
+		}
+		this.orientation[index] = tileOrientation;
 	}
 	,render: function(paintMode,transform) {
 		com_gEngine_display_Layer.prototype.render.call(this,paintMode,transform);
@@ -5545,10 +6494,20 @@ com_gEngine_display_extra_TileMapDisplay.prototype = $extend(com_gEngine_display
 				var index = x25 + this.widthInTiles * y25;
 				if(index >= 0 && index < this.tiles.length) {
 					var frame = this.tiles[index];
+					var orientation = this.orientation[index];
 					if(frame >= 0) {
 						this.tile.timeline.gotoAndStop(frame);
 						this.tile.x = x25 * this.tileWidth;
 						this.tile.y = y25 * this.tileHeight;
+						if((orientation & 4) != 0) {
+							this.tile.set_rotation(Math.PI * 0.5);
+							this.tile.scaleX = (orientation & 2) != 0 ? -1 : 1;
+							this.tile.scaleY = (orientation & 1) != 0 ? 1 : -1;
+						} else {
+							this.tile.set_rotation(0);
+							this.tile.scaleX = (orientation & 1) != 0 ? -1 : 1;
+							this.tile.scaleY = (orientation & 2) != 0 ? -1 : 1;
+						}
 						this.tile.render(paintMode,transform);
 					}
 				}
@@ -5575,7 +6534,10 @@ com_gEngine_helper_RectangleDisplay.init = function(textureID) {
 };
 com_gEngine_helper_RectangleDisplay.__super__ = com_gEngine_display_Sprite;
 com_gEngine_helper_RectangleDisplay.prototype = $extend(com_gEngine_display_Sprite.prototype,{
-	__class__: com_gEngine_helper_RectangleDisplay
+	setColor: function(r,g,b) {
+		this.colorMultiplication(r / 255,g / 255,b / 255,1);
+	}
+	,__class__: com_gEngine_helper_RectangleDisplay
 });
 var com_gEngine_helper_Timeline = function(frameRate,totalFrames,labels) {
 	this.currentTime = 0;
@@ -5586,7 +6548,8 @@ var com_gEngine_helper_Timeline = function(frameRate,totalFrames,labels) {
 	this.currentFrame = 0;
 	this.frameSkiped = 0;
 	this.frameRate = frameRate;
-	this.lastFrame = this.totalFrames = totalFrames;
+	this.lastFrame = totalFrames - 1;
+	this.totalFrames = totalFrames;
 	if(totalFrames == 1) {
 		this.playing = false;
 	}
@@ -5879,7 +6842,8 @@ var com_gEngine_painters_Painter = function(autoDestroy,blend,depthWrite,clockWi
 	this.depthWrite = depthWrite;
 	this.clockWise = clockWise;
 	this.initShaders(blend);
-	this.buffer = this.vertexBuffer.lock();
+	this.createBuffers();
+	this.buffer = this.downloadVertexBuffer();
 };
 $hxClasses["com.gEngine.painters.Painter"] = com_gEngine_painters_Painter;
 com_gEngine_painters_Painter.__name__ = "com.gEngine.painters.Painter";
@@ -5900,7 +6864,7 @@ com_gEngine_painters_Painter.prototype = {
 		this.canvasWidth = canvas.get_width();
 		this.canvasHeight = canvas.get_height();
 		var g = canvas.get_g4();
-		this.vertexBuffer.unlock(vertexCount);
+		this.uploadVertexBuffer(vertexCount);
 		if(clear) {
 			g.clear(kha__$Color_Color_$Impl_$.fromFloats(this.red,this.green,this.blue,this.alpha),1);
 		}
@@ -5911,7 +6875,7 @@ com_gEngine_painters_Painter.prototype = {
 		g.setTextureParameters(this.textureConstantID,2,2,this.filter,this.filter,this.mipMapFilter);
 		g.drawIndexedVertices(0,vertexCount * 1.5 | 0);
 		this.unsetTextures(g);
-		this.buffer = this.vertexBuffer.lock();
+		this.buffer = this.downloadVertexBuffer();
 		++com_gEngine_GEngine.drawCount;
 		this.counter = 0;
 	}
@@ -5920,13 +6884,13 @@ com_gEngine_painters_Painter.prototype = {
 	}
 	,initShaders: function(blend) {
 		this.pipeline = new kha_graphics4_PipelineState();
-		this.setShaders(this.pipeline);
-		var structure = new kha_graphics4_VertexStructure();
-		this.defineVertexStructure(structure);
-		this.pipeline.inputLayout = [structure];
+		this.structure = new kha_graphics4_VertexStructure();
+		this.defineVertexStructure(this.structure);
+		this.pipeline.inputLayout = [this.structure];
 		this.pipeline.depthMode = 4;
 		this.pipeline.cullMode = this.clockWise;
 		this.pipeline.depthWrite = this.depthWrite;
+		this.setShaders(this.pipeline);
 		var pipeline = this.pipeline;
 		pipeline.blendOperation = blend.blendOperation;
 		pipeline.blendSource = blend.blendSource;
@@ -5935,14 +6899,13 @@ com_gEngine_painters_Painter.prototype = {
 		pipeline.alphaBlendDestination = blend.alphaBlendDestination;
 		this.pipeline.compile();
 		this.getConstantLocations(this.pipeline);
-		this.vertexBuffer = new kha_graphics4_VertexBuffer(4000,structure,1);
-		this.createIndexBuffer();
 	}
 	,getConstantLocations: function(pipeline) {
 		this.mvpID = pipeline.getConstantLocation("projectionMatrix");
 		this.textureConstantID = pipeline.getTextureUnit("tex");
 	}
-	,createIndexBuffer: function() {
+	,createBuffers: function() {
+		this.vertexBuffer = new kha_graphics4_VertexBuffer(4000,this.structure,1);
 		this.indexBuffer = new kha_graphics4_IndexBuffer(6000,0);
 		var iData = this.indexBuffer.lock();
 		var _g = 0;
@@ -5971,6 +6934,12 @@ com_gEngine_painters_Painter.prototype = {
 	}
 	,unsetTextures: function(g) {
 		g.setTexture(this.textureConstantID,null);
+	}
+	,downloadVertexBuffer: function() {
+		return this.vertexBuffer.lock();
+	}
+	,uploadVertexBuffer: function(count) {
+		this.vertexBuffer.unlock(count);
 	}
 	,destroy: function() {
 		this.vertexBuffer.delete();
@@ -6024,11 +6993,14 @@ com_gEngine_painters_PainterAlpha.prototype = $extend(com_gEngine_painters_Paint
 	}
 	,__class__: com_gEngine_painters_PainterAlpha
 });
-var com_gEngine_painters_PainterColorTransform = function(autoDestroy,blend) {
+var com_gEngine_painters_PainterColorTransform = function(autoDestroy,blend,depthWrite) {
+	if(depthWrite == null) {
+		depthWrite = false;
+	}
 	if(autoDestroy == null) {
 		autoDestroy = true;
 	}
-	com_gEngine_painters_Painter.call(this,autoDestroy,blend);
+	com_gEngine_painters_Painter.call(this,autoDestroy,blend,depthWrite);
 	this.dataPerVertex = 13;
 };
 $hxClasses["com.gEngine.painters.PainterColorTransform"] = com_gEngine_painters_PainterColorTransform;
@@ -6331,6 +7303,9 @@ com_imageAtlas_AtlasGenerator.generate = function(width,height,bitmaps,separatio
 	if(separation == null) {
 		separation = 2;
 	}
+	if(com_imageAtlas_AtlasGenerator.clearPipeline == null) {
+		com_imageAtlas_AtlasGenerator.clearPipeline = com_imageAtlas_AtlasGenerator.createClearPipeline();
+	}
 	bitmaps.sort(com_imageAtlas_AtlasGenerator.sortArea);
 	var atlasImage = kha_Image.createRenderTarget(width,height,0,0,0);
 	var realWidth = atlasImage.get_realWidth();
@@ -6350,13 +7325,22 @@ com_imageAtlas_AtlasGenerator.generate = function(width,height,bitmaps,separatio
 			g.end();
 			g.begin(false);
 		}
-		g.set_pipeline(bitmap.specialPipeline);
+		if(bitmap.specialPipeline != null) {
+			g.set_pipeline(bitmap.specialPipeline);
+		} else {
+			g.set_pipeline(com_imageAtlas_AtlasGenerator.clearPipeline);
+		}
 		g.set_imageScaleQuality(1);
 		if(bitmap.hasMipMap) {
 			g.set_mipmapScaleQuality(1);
 		} else {
 			g.set_mipmapScaleQuality(0);
 		}
+		g.set_imageScaleQuality(0);
+		g.drawScaledSubImage(bitmap.image,bitmap.x * bitmap.scaleX,bitmap.y * bitmap.scaleY,bitmap.width * bitmap.scaleX,bitmap.height * bitmap.scaleY,rectangle.x - 1,rectangle.y,bitmap.width + 2,bitmap.height);
+		g.drawScaledSubImage(bitmap.image,bitmap.x * bitmap.scaleX,bitmap.y * bitmap.scaleY,bitmap.width * bitmap.scaleX,bitmap.height * bitmap.scaleY,rectangle.x,rectangle.y - 1,bitmap.width,bitmap.height + 2);
+		g.set_color(kha__$Color_Color_$Impl_$.fromFloats(1,1,1,1));
+		g.set_imageScaleQuality(1);
 		g.drawScaledSubImage(bitmap.image,bitmap.x * bitmap.scaleX,bitmap.y * bitmap.scaleY,bitmap.width * bitmap.scaleX,bitmap.height * bitmap.scaleY,rectangle.x,rectangle.y,bitmap.width,bitmap.height);
 		rectangle.x += bitmap.extrude;
 		rectangle.y += bitmap.extrude;
@@ -6393,6 +7377,15 @@ com_imageAtlas_AtlasGenerator.generate = function(width,height,bitmaps,separatio
 };
 com_imageAtlas_AtlasGenerator.sortArea = function(b1,b2) {
 	return b2.width * b2.height - b1.width * b1.height | 0;
+};
+com_imageAtlas_AtlasGenerator.createClearPipeline = function() {
+	var shaderPipeline = kha_graphics4_Graphics2.createImagePipeline(kha_graphics4_Graphics2.createImageVertexStructure());
+	shaderPipeline.blendSource = 1;
+	shaderPipeline.blendDestination = 2;
+	shaderPipeline.alphaBlendSource = 1;
+	shaderPipeline.alphaBlendDestination = 2;
+	shaderPipeline.compile();
+	return shaderPipeline;
 };
 var com_imageAtlas_Bitmap = function() {
 	this.hasPreRender = false;
@@ -6732,7 +7725,7 @@ com_loading_basicResources_FontLoader.prototype = $extend(com_loading_basicResou
 		kha_Assets.loadFont(this.imageName,function(font) {
 			_gthis.fromKhaFont();
 			callback();
-		},null,{ fileName : "com/loading/basicResources/FontLoader.hx", lineNumber : 28, className : "com.loading.basicResources.FontLoader", methodName : "load"});
+		},null,{ fileName : "com/loading/basicResources/FontLoader.hx", lineNumber : 29, className : "com.loading.basicResources.FontLoader", methodName : "load"});
 	}
 	,loadLocal: function(callback) {
 		this.fromKhaFont();
@@ -6750,6 +7743,10 @@ com_loading_basicResources_FontLoader.prototype = $extend(com_loading_basicResou
 		var counter = 0;
 		if(com_loading_basicResources_FontLoader.pipeline == null) {
 			com_loading_basicResources_FontLoader.pipeline = kha_graphics4_Graphics2.createTextPipeline(kha_graphics4_Graphics2.createTextVertexStructure());
+			com_loading_basicResources_FontLoader.pipeline.blendSource = 3;
+			com_loading_basicResources_FontLoader.pipeline.blendDestination = 2;
+			com_loading_basicResources_FontLoader.pipeline.alphaBlendSource = 3;
+			com_loading_basicResources_FontLoader.pipeline.alphaBlendDestination = 2;
 			com_loading_basicResources_FontLoader.pipeline.compile();
 		}
 		while(true) {
@@ -6786,6 +7783,16 @@ com_loading_basicResources_FontLoader.prototype = $extend(com_loading_basicResou
 	,unloadLocal: function() {
 	}
 	,__class__: com_loading_basicResources_FontLoader
+});
+var com_loading_basicResources_ImageLoader = function(imageName) {
+	var description = Reflect.field(kha_Assets.images,imageName + "Description");
+	com_loading_basicResources_TilesheetLoader.call(this,imageName,description.original_width,description.original_height,0);
+};
+$hxClasses["com.loading.basicResources.ImageLoader"] = com_loading_basicResources_ImageLoader;
+com_loading_basicResources_ImageLoader.__name__ = "com.loading.basicResources.ImageLoader";
+com_loading_basicResources_ImageLoader.__super__ = com_loading_basicResources_TilesheetLoader;
+com_loading_basicResources_ImageLoader.prototype = $extend(com_loading_basicResources_TilesheetLoader.prototype,{
+	__class__: com_loading_basicResources_ImageLoader
 });
 var com_loading_basicResources_JoinAtlas = function(width,height,separation) {
 	if(separation == null) {
@@ -6880,142 +7887,146 @@ com_loading_basicResources_JoinAtlas.prototype = {
 	}
 	,__class__: com_loading_basicResources_JoinAtlas
 };
-var com_loading_basicResources_SparrowLoader = function(imageName,dataName) {
-	com_loading_basicResources_TilesheetLoader.call(this,imageName,0,0,0);
-	this.dataName = dataName;
-};
-$hxClasses["com.loading.basicResources.SparrowLoader"] = com_loading_basicResources_SparrowLoader;
-com_loading_basicResources_SparrowLoader.__name__ = "com.loading.basicResources.SparrowLoader";
-com_loading_basicResources_SparrowLoader.getBaseName = function(fullName) {
-	var foundInt = false;
-	var counter = fullName.length - 1;
-	while(counter >= 0) {
-		if(Std.parseInt(fullName.charAt(counter)) != null) {
-			fullName = fullName.substring(0,counter) + fullName.substring(counter + 1);
-			foundInt = true;
-		} else if(foundInt) {
-			break;
-		}
-		--counter;
+var com_loading_basicResources_SoundLoader = function(soundName,uncompress) {
+	if(uncompress == null) {
+		uncompress = true;
 	}
-	return fullName;
+	this.uncompress = true;
+	this.name = soundName;
+	this.uncompress = uncompress;
 };
-com_loading_basicResources_SparrowLoader.__super__ = com_loading_basicResources_TilesheetLoader;
-com_loading_basicResources_SparrowLoader.prototype = $extend(com_loading_basicResources_TilesheetLoader.prototype,{
+$hxClasses["com.loading.basicResources.SoundLoader"] = com_loading_basicResources_SoundLoader;
+com_loading_basicResources_SoundLoader.__name__ = "com.loading.basicResources.SoundLoader";
+com_loading_basicResources_SoundLoader.__interfaces__ = [com_loading_Resource];
+com_loading_basicResources_SoundLoader.prototype = {
 	load: function(callback) {
-		var _gthis = this;
-		kha_Assets.loadImage(this.imageName,function(image) {
-			kha_Assets.loadBlob(_gthis.dataName,function(b) {
-				_gthis.fromSpriteSheet();
-				callback();
-			},null,{ fileName : "com/loading/basicResources/SparrowLoader.hx", lineNumber : 23, className : "com.loading.basicResources.SparrowLoader", methodName : "load"});
-		},null,{ fileName : "com/loading/basicResources/SparrowLoader.hx", lineNumber : 22, className : "com.loading.basicResources.SparrowLoader", methodName : "load"});
+		this.onLoad = callback;
+		kha_Assets.loadSound(this.name,$bind(this,this.onSoundLoad),null,{ fileName : "com/loading/basicResources/SoundLoader.hx", lineNumber : 20, className : "com.loading.basicResources.SoundLoader", methodName : "load"});
 	}
-	,fromSpriteSheet: function() {
-		var text = Reflect.field(kha_Assets.blobs,this.dataName);
-		var x = Xml.parse(text.toString()).firstElement();
-		if(x.nodeType != Xml.Document && x.nodeType != Xml.Element) {
-			throw new js__$Boot_HaxeError("Invalid nodeType " + _$Xml_XmlType_$Impl_$.toString(x.nodeType));
+	,loadLocal: function(callback) {
+		this.onLoad = callback;
+		this.onSoundLoad(Reflect.field(kha_Assets.sounds,this.name));
+	}
+	,onSoundLoad: function(sound) {
+		com_soundLib_SoundManager.addSound(this.name,sound);
+		if(this.uncompress && sound.compressedData != null) {
+			sound.uncompress(this.onLoad);
+		} else {
+			this.onLoad();
 		}
-		var data = x;
-		var image = Reflect.field(kha_Assets.images,this.imageName);
-		this.animation = new com_gEngine_AnimationData();
+		this.onLoad = null;
+	}
+	,unload: function() {
+		kha_Assets.sounds.get(this.name).unload();
+		kha_Assets.sounds[this.name] = null;
+	}
+	,unloadLocal: function() {
+	}
+	,__class__: com_loading_basicResources_SoundLoader
+};
+var com_loading_basicResources_SpriteSheetLoader = function(imageName,tileWidth,tileHeight,spacing,animations) {
+	com_loading_basicResources_TilesheetLoader.call(this,imageName,tileWidth,tileHeight,spacing);
+	this.animations = animations;
+};
+$hxClasses["com.loading.basicResources.SpriteSheetLoader"] = com_loading_basicResources_SpriteSheetLoader;
+com_loading_basicResources_SpriteSheetLoader.__name__ = "com.loading.basicResources.SpriteSheetLoader";
+com_loading_basicResources_SpriteSheetLoader.__super__ = com_loading_basicResources_TilesheetLoader;
+com_loading_basicResources_SpriteSheetLoader.prototype = $extend(com_loading_basicResources_TilesheetLoader.prototype,{
+	fromSpriteSheet: function() {
+		com_loading_basicResources_TilesheetLoader.prototype.fromSpriteSheet.call(this);
+		this.baseFrames = this.animation.frames;
 		var frames = [];
-		var labels = [];
-		this.bitmaps = [];
-		var counter = 0;
-		var currentAnimation = null;
-		var textures = haxe_xml__$Access_NodeListAccess_$Impl_$.resolve(data,"SubTexture");
-		textures.sort(function(a,b) {
-			var aName = haxe_xml__$Access_AttribAccess_$Impl_$.resolve(a,"name");
-			var aNumber = "";
-			var aString = "";
-			var _g = 0;
-			var _g1 = text.get_length();
-			while(_g < _g1) {
-				var char = _g++;
-				if(Std.parseInt(aName.charAt(char)) != null) {
-					aNumber += aName.charAt(char);
-				} else {
-					aString += aName.charAt(char);
-				}
-			}
-			var bName = haxe_xml__$Access_AttribAccess_$Impl_$.resolve(b,"name");
-			var bNumber = "";
-			var bString = "";
+		var frameCounter = 0;
+		var _g = 0;
+		var _g1 = this.animations;
+		while(_g < _g1.length) {
+			var seq = _g1[_g];
+			++_g;
+			var label = new com_gEngine_Label(seq.name,frameCounter);
+			this.animation.labels.push(label);
 			var _g2 = 0;
-			var _g3 = text.get_length();
-			while(_g2 < _g3) {
-				var char1 = _g2++;
-				if(Std.parseInt(bName.charAt(char1)) != null) {
-					bNumber += bName.charAt(char1);
-				} else {
-					bString += bName.charAt(char1);
-				}
+			var _g11 = seq.frames;
+			while(_g2 < _g11.length) {
+				var frame = _g11[_g2];
+				++_g2;
+				frames.push(this.baseFrames[frame]);
 			}
-			var aInt = Std.parseInt(aNumber);
-			var bInt = Std.parseInt(bNumber);
-			if(aString == bString) {
-				if(aInt < bInt) {
-					return -1;
-				}
-				if(aInt > bInt) {
-					return 1;
-				}
-			}
-			if(aString < bString) {
-				return -1;
-			}
-			if(aString > bString) {
-				return 1;
-			}
-			return 0;
-		});
-		var _g4 = 0;
-		while(_g4 < textures.length) {
-			var texture = textures[_g4];
-			++_g4;
-			var name = haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"name");
-			var trimmed = haxe_xml__$Access_HasAttribAccess_$Impl_$.resolve(texture,"frameX");
-			var rotated = haxe_xml__$Access_HasAttribAccess_$Impl_$.resolve(texture,"rotated") && haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"rotated") == "true";
-			if(haxe_xml__$Access_HasAttribAccess_$Impl_$.resolve(texture,"flipX")) {
-				haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"flipX");
-			}
-			if(haxe_xml__$Access_HasAttribAccess_$Impl_$.resolve(texture,"flipY")) {
-				haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"flipY");
-			}
-			var baseName = com_loading_basicResources_SparrowLoader.getBaseName(name);
-			if(currentAnimation != baseName) {
-				currentAnimation = baseName;
-				var label = new com_gEngine_Label(baseName,counter);
-				labels.push(label);
-			}
-			++counter;
-			var frameX = trimmed ? -Std.parseInt(haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"frameX")) : 0;
-			var frameY = trimmed ? -Std.parseInt(haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"frameY")) : 0;
-			frames.push(com_loading_basicResources_TilesheetLoader.createFrame(frameX,frameY,Std.parseInt(haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"width")),Std.parseInt(haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"height")),rotated));
-			var bitmap = new com_imageAtlas_Bitmap();
-			bitmap.x = Std.parseInt(haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"x"));
-			bitmap.y = Std.parseInt(haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"y"));
-			bitmap.width = Std.parseInt(haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"width"));
-			bitmap.height = Std.parseInt(haxe_xml__$Access_AttribAccess_$Impl_$.resolve(texture,"height"));
-			bitmap.name = name;
-			bitmap.image = image;
-			this.bitmaps.push(bitmap);
+			frameCounter += seq.frames.length;
 		}
 		this.animation.frames = frames;
-		this.animation.name = this.imageName;
-		this.animation.labels = labels;
-		com_basicDisplay_SpriteSheetDB.get_i().add(this.animation);
 	}
-	,__class__: com_loading_basicResources_SparrowLoader
+	,update: function(atlasId) {
+		var temp = this.animation.frames;
+		this.animation.frames = this.baseFrames;
+		com_loading_basicResources_TilesheetLoader.prototype.update.call(this,atlasId);
+		this.animation.frames = temp;
+	}
+	,__class__: com_loading_basicResources_SpriteSheetLoader
 });
+var com_loading_basicResources_Sequence = function(name,frames) {
+	this.name = name;
+	this.frames = frames;
+};
+$hxClasses["com.loading.basicResources.Sequence"] = com_loading_basicResources_Sequence;
+com_loading_basicResources_Sequence.__name__ = "com.loading.basicResources.Sequence";
+com_loading_basicResources_Sequence.prototype = {
+	__class__: com_loading_basicResources_Sequence
+};
 var com_soundLib_SoundManager = function() { };
 $hxClasses["com.soundLib.SoundManager"] = com_soundLib_SoundManager;
 com_soundLib_SoundManager.__name__ = "com.soundLib.SoundManager";
 com_soundLib_SoundManager.init = function() {
 	com_soundLib_SoundManager.map = new haxe_ds_StringMap();
 	com_soundLib_SoundManager.initied = true;
+};
+com_soundLib_SoundManager.addSound = function(soundName,sound) {
+	var _this = com_soundLib_SoundManager.map;
+	if(__map_reserved[soundName] != null) {
+		_this.setReserved(soundName,sound);
+	} else {
+		_this.h[soundName] = sound;
+	}
+};
+com_soundLib_SoundManager.playFx = function(sound,loop) {
+	if(loop == null) {
+		loop = false;
+	}
+	var _this = com_soundLib_SoundManager.map;
+	if(!(__map_reserved[sound] != null ? _this.existsReserved(sound) : _this.h.hasOwnProperty(sound))) {
+		throw new js__$Boot_HaxeError("Sound not found");
+	}
+	if(!com_soundLib_SoundManager.soundMuted) {
+		var _this1 = com_soundLib_SoundManager.map;
+		return kha_audio2_Audio1.play(__map_reserved[sound] != null ? _this1.getReserved(sound) : _this1.h[sound],loop);
+	}
+	return null;
+};
+com_soundLib_SoundManager.playMusic = function(soundName,loop) {
+	if(loop == null) {
+		loop = true;
+	}
+	var _this = com_soundLib_SoundManager.map;
+	if(!(__map_reserved[soundName] != null ? _this.existsReserved(soundName) : _this.h.hasOwnProperty(soundName))) {
+		throw new js__$Boot_HaxeError("Sound not found " + soundName);
+	}
+	if(com_soundLib_SoundManager.music != null) {
+		com_soundLib_SoundManager.music.stop();
+	}
+	com_soundLib_SoundManager.musicName = soundName;
+	if(!com_soundLib_SoundManager.musicMuted) {
+		var _this1 = com_soundLib_SoundManager.map;
+		var sound = __map_reserved[soundName] != null ? _this1.getReserved(soundName) : _this1.h[soundName];
+		if(sound.compressedData != null) {
+			com_soundLib_SoundManager.music = kha_audio2_Audio1.stream(sound,loop);
+		} else {
+			com_soundLib_SoundManager.music = kha_audio2_Audio1.play(sound,loop);
+		}
+	}
+};
+com_soundLib_SoundManager.musicVolume = function(vol) {
+	if(com_soundLib_SoundManager.music != null) {
+		com_soundLib_SoundManager.music.set_volume(vol);
+	}
 };
 com_soundLib_SoundManager.reset = function() {
 	com_soundLib_SoundManager.map = new haxe_ds_StringMap();
@@ -7400,6 +8411,13 @@ format_tmx__$Data_ImplTmxProperties.prototype = {
 			this.types[idx] = type;
 			this.cache[idx] = null;
 		}
+	}
+	,getString: function(name) {
+		var idx = this.names.indexOf(name);
+		if(idx == -1) {
+			return null;
+		}
+		return this.strings[idx];
 	}
 	,__class__: format_tmx__$Data_ImplTmxProperties
 };
@@ -8068,98 +9086,807 @@ format_tmx_Tools.applyObjectTypeTemplate = function(obj,ot) {
 		}
 	}
 };
-var gameObjects_Player = function(X,Y,layer) {
+var gameObjects_Bagpipe = function() {
+	this.totalLifeTime = 1.4;
+	this.lifeTime = 0;
 	com_framework_utils_Entity.call(this);
-	this.direction = new kha_math_FastVector2(0,-1);
-	this.display = new com_gEngine_display_Sprite("samus");
-	this.display.timeline.playAnimation("samusShooting");
-	this.display.timeline.frameRate = 0.071428571428571425;
-	this.display.offsetX = -10;
-	this.display.offsetY = -10;
+	this.display = new com_gEngine_display_Sprite("song");
+	this.display.scaleX = this.display.scaleY = 1;
 	this.collision = new com_collision_platformer_CollisionBox();
-	this.collision.width = 24;
-	this.collision.height = 76;
-	this.collision.x = X;
-	this.collision.y = Y;
-	layer.addChild(this.display);
-	this.sword = new gameObjects_Sword();
-	this.addChild(this.sword);
-	this.display.set_smooth(false);
-	this.screenWidth = com_gEngine_GEngine.get_i().width;
-	this.screenHeight = com_gEngine_GEngine.get_i().height;
+	this.collision.width = this.display.width();
+	this.collision.height = this.display.height();
+	this.collision.userData = this;
+	this.display.timeline.frameRate = 0.125;
 };
-$hxClasses["gameObjects.Player"] = gameObjects_Player;
-gameObjects_Player.__name__ = "gameObjects.Player";
-gameObjects_Player.__super__ = com_framework_utils_Entity;
-gameObjects_Player.prototype = $extend(com_framework_utils_Entity.prototype,{
+$hxClasses["gameObjects.Bagpipe"] = gameObjects_Bagpipe;
+gameObjects_Bagpipe.__name__ = "gameObjects.Bagpipe";
+gameObjects_Bagpipe.__super__ = com_framework_utils_Entity;
+gameObjects_Bagpipe.prototype = $extend(com_framework_utils_Entity.prototype,{
+	limboStart: function() {
+		this.display.removeFromParent();
+		this.collision.removeFromParent();
+	}
+	,update: function(dt) {
+		this.lifeTime += dt;
+		if(this.lifeTime > this.totalLifeTime) {
+			this.die();
+		}
+		this.collision.update(dt);
+		this.display.x = this.collision.x;
+		this.display.y = this.collision.y;
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,play: function(x,y,dirX,dirY,songCollision) {
+		this.lifeTime = 0;
+		if(dirY > 0 || dirY < 0) {
+			this.collision.width = 188;
+			this.collision.height = 12;
+			this.collision.x = x - this.collision.width / 2;
+			this.collision.y = y;
+			this.collision.velocityX = 0;
+			this.collision.velocityY = 200 * dirY;
+			this.display.set_rotation(Math.PI / 2);
+			this.display.offsetX = this.collision.width;
+		} else {
+			this.collision.width = 12;
+			this.collision.height = 188;
+			this.collision.x = x;
+			this.collision.y = y - this.collision.height / 2;
+			this.collision.velocityX = 200 * dirX;
+			this.collision.velocityY = 0;
+			this.display.set_rotation(0);
+			this.display.offsetX = 0;
+		}
+		songCollision.add(this.collision);
+		GlobalGameData.simulationLayer.addChild(this.display);
+		this.display.timeline.playAnimation("play",false);
+	}
+	,__class__: gameObjects_Bagpipe
+});
+var gameObjects_Golem = function(layer,collisions,x,y,dirY) {
+	com_framework_utils_Entity.call(this);
+	this.display = new com_gEngine_display_Sprite("golem");
+	this.display.set_smooth(false);
+	layer.addChild(this.display);
+	this.collision = new com_collision_platformer_CollisionBox();
+	collisions.add(this.collision);
+	this.collision.width = 34;
+	this.collision.height = 34;
+	var tmp = this.display.width();
+	this.display.pivotX = tmp / 2;
+	this.display.scaleX = this.display.scaleY = 1;
+	this.display.offsetX = -5;
+	this.display.offsetY = 5;
+	this.collision.x = x;
+	this.collision.y = y;
+	this.collision.userData = this;
+	this.direction = new kha_math_FastVector2(0,dirY);
+};
+$hxClasses["gameObjects.Golem"] = gameObjects_Golem;
+gameObjects_Golem.__name__ = "gameObjects.Golem";
+gameObjects_Golem.__super__ = com_framework_utils_Entity;
+gameObjects_Golem.prototype = $extend(com_framework_utils_Entity.prototype,{
 	update: function(dt) {
-		this.collision.velocityX = 0;
-		this.collision.velocityY = 0;
-		if(com_framework_utils_Input.i.isKeyCodeDown(37)) {
-			if(this.collision.x <= 0) {
-				this.collision.x = 0;
-			} else {
-				this.collision.velocityX = -300.;
-			}
-		}
-		if(com_framework_utils_Input.i.isKeyCodeDown(39)) {
-			if(this.collision.x >= this.screenWidth - this.collision.width) {
-				this.collision.x = this.screenWidth - this.collision.width;
-			} else {
-				this.collision.velocityX = 300;
-			}
-		}
-		if(com_framework_utils_Input.i.isKeyCodeDown(40)) {
-			if(this.collision.y >= this.screenHeight - this.collision.height) {
-				this.collision.y = this.screenHeight - this.collision.height;
-			} else {
-				this.collision.velocityY = 300;
-			}
-		}
-		if(com_framework_utils_Input.i.isKeyCodeDown(38)) {
-			if(this.collision.y <= this.collision.height) {
-				this.collision.y = this.collision.height;
-			} else {
-				this.collision.velocityY = -300.;
-			}
-		}
+		this.collision.velocityX = this.direction.x;
+		this.collision.velocityY = this.direction.y * 240;
 		this.collision.update(dt);
 		com_framework_utils_Entity.prototype.update.call(this,dt);
 	}
 	,render: function() {
 		this.display.x = this.collision.x;
 		this.display.y = this.collision.y;
-		if(this.collision.velocityX != 0) {
-			if(this.collision.velocityX > 0) {
-				this.display.scaleX = 1;
-				this.display.offsetX = -22;
-			} else {
-				this.display.scaleX = -1;
-				this.display.offsetX = -44;
-			}
-			this.display.timeline.playAnimation("samusRunning_");
+		this.display.timeline.frameRate = 0.1;
+		if(this.direction.y < 0) {
+			this.display.timeline.playAnimation("walkFront");
+		} else if(this.direction.y > 0) {
+			this.display.timeline.playAnimation("walkBack");
 		} else {
-			if(this.display.scaleX == 1) {
-				this.display.offsetX = -10;
-			} else {
-				this.display.offsetX = -30;
-			}
-			this.display.timeline.playAnimation("samusShooting");
+			this.display.timeline.playAnimation("idle");
+			this.display.offsetY = -15;
+			this.display.timeline.frameRate = 0.5;
 		}
-		com_framework_utils_Entity.prototype.render.call(this);
 	}
-	,__class__: gameObjects_Player
+	,invertDirection: function() {
+		this.direction.y = -this.direction.y;
+	}
+	,dissapear: function() {
+		this.collision.removeFromParent();
+		this.display.removeFromParent();
+	}
+	,__class__: gameObjects_Golem
 });
-var gameObjects_Sword = function() {
+var gameObjects_Instrument = function() {
 	com_framework_utils_Entity.call(this);
 	this.pool = true;
-	this.bulletsCollisions = new com_collision_platformer_CollisionGroup();
+	this.instrumentCollisions = new com_collision_platformer_CollisionGroup();
 };
-$hxClasses["gameObjects.Sword"] = gameObjects_Sword;
-gameObjects_Sword.__name__ = "gameObjects.Sword";
-gameObjects_Sword.__super__ = com_framework_utils_Entity;
-gameObjects_Sword.prototype = $extend(com_framework_utils_Entity.prototype,{
-	__class__: gameObjects_Sword
+$hxClasses["gameObjects.Instrument"] = gameObjects_Instrument;
+gameObjects_Instrument.__name__ = "gameObjects.Instrument";
+gameObjects_Instrument.__super__ = com_framework_utils_Entity;
+gameObjects_Instrument.prototype = $extend(com_framework_utils_Entity.prototype,{
+	play: function(x,y,dirX,dirY) {
+		var bagpipe = this.recycle(gameObjects_Bagpipe);
+		bagpipe.play(x,y,dirX,dirY,this.instrumentCollisions);
+	}
+	,__class__: gameObjects_Instrument
+});
+var gameObjects_RangedWeapon = function() {
+	com_framework_utils_Entity.call(this);
+	this.pool = true;
+	this.swapparangCollisions = new com_collision_platformer_CollisionGroup();
+};
+$hxClasses["gameObjects.RangedWeapon"] = gameObjects_RangedWeapon;
+gameObjects_RangedWeapon.__name__ = "gameObjects.RangedWeapon";
+gameObjects_RangedWeapon.__super__ = com_framework_utils_Entity;
+gameObjects_RangedWeapon.prototype = $extend(com_framework_utils_Entity.prototype,{
+	tossSwapparang: function(x,y,dirX,dirY) {
+		var swapparang = this.recycle(gameObjects_Swapparang);
+		swapparang.toss(x,y,dirX,dirY,this.swapparangCollisions);
+	}
+	,__class__: gameObjects_RangedWeapon
+});
+var gameObjects_Slash = function() {
+	this.totalLifeTime = 0.4;
+	this.lifeTime = 0;
+	com_framework_utils_Entity.call(this);
+	this.collision = new com_collision_platformer_CollisionBox();
+	this.collision.userData = this;
+	this.display = new com_gEngine_display_Sprite("slash_attack");
+	this.display.set_smooth(false);
+	this.display.scaleX = 0.8;
+	this.display.scaleY = 0.8;
+	this.display.timeline.frameRate = 0.066666666666666666;
+};
+$hxClasses["gameObjects.Slash"] = gameObjects_Slash;
+gameObjects_Slash.__name__ = "gameObjects.Slash";
+gameObjects_Slash.__super__ = com_framework_utils_Entity;
+gameObjects_Slash.prototype = $extend(com_framework_utils_Entity.prototype,{
+	limboStart: function() {
+		this.display.removeFromParent();
+		this.collision.removeFromParent();
+	}
+	,update: function(dt) {
+		this.lifeTime += dt;
+		if(this.lifeTime > this.totalLifeTime) {
+			GlobalGameData.player.isSlashing = false;
+			this.die();
+		}
+		this.collision.update(dt);
+		this.display.x = this.collision.x;
+		this.display.y = this.collision.y;
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,cut: function(x,y,dirX,dirY,bulletsCollision) {
+		this.collision.x = x;
+		this.collision.y = y;
+		if(dirY > 0) {
+			this.collision.width = 28.8;
+			this.collision.height = 24;
+			this.collision.x -= 6;
+			this.collision.y += 16;
+			this.display.offsetY = 26;
+			this.display.offsetX = 29;
+			this.display.set_rotation(-Math.PI);
+		} else if(dirY < 0) {
+			this.collision.width = 28.8;
+			this.collision.height = 24;
+			this.collision.x -= 6;
+			this.collision.y -= 22;
+			this.display.offsetY = -2;
+			this.display.offsetX = 0;
+			this.display.set_rotation(0);
+		} else if(dirX < 0) {
+			this.collision.height = 28.8;
+			this.collision.width = 24;
+			this.collision.y -= 5;
+			this.collision.x -= 20;
+			this.display.offsetY = 29;
+			this.display.offsetX = -2;
+			this.display.set_rotation(-Math.PI / 2);
+		} else {
+			this.collision.height = 28.8;
+			this.collision.width = 24;
+			this.collision.y -= 5;
+			this.collision.x += 12;
+			this.display.offsetY = 0;
+			this.display.offsetX = 26;
+			this.display.set_rotation(Math.PI / 2);
+		}
+		this.lifeTime = 0;
+		this.collision.velocityX = dirX;
+		this.collision.velocityY = dirY;
+		bulletsCollision.add(this.collision);
+		GlobalGameData.simulationLayer.addChild(this.display);
+		this.display.timeline.playAnimation("attack",false);
+	}
+	,__class__: gameObjects_Slash
+});
+var gameObjects_Spectre = function(layer,collisions,x,y) {
+	this.stunnedTime = 0;
+	this.stunned = false;
+	com_framework_utils_Entity.call(this);
+	this.display = new com_gEngine_display_Sprite("darkrai");
+	this.display.set_smooth(false);
+	layer.addChild(this.display);
+	this.collision = new com_collision_platformer_CollisionBox();
+	collisions.add(this.collision);
+	var tmp = this.display.width();
+	this.collision.width = tmp * 0.6;
+	var tmp1 = this.display.height();
+	this.collision.height = tmp1 * 0.4;
+	var tmp2 = this.display.width();
+	this.display.pivotX = tmp2 / 2;
+	this.display.scaleX = this.display.scaleY = 1;
+	this.display.offsetX = -this.collision.width * 0.35;
+	this.display.offsetY = -this.collision.height * 0.8;
+	this.collision.x = x;
+	this.collision.y = y;
+	this.collision.userData = this;
+	this.direction = new kha_math_FastVector2(0,0);
+};
+$hxClasses["gameObjects.Spectre"] = gameObjects_Spectre;
+gameObjects_Spectre.__name__ = "gameObjects.Spectre";
+gameObjects_Spectre.__super__ = com_framework_utils_Entity;
+gameObjects_Spectre.prototype = $extend(com_framework_utils_Entity.prototype,{
+	update: function(dt) {
+		if(this.stunned) {
+			if(this.stunnedTime < GlobalGameData.stunDuration) {
+				this.stunnedTime += dt;
+				return;
+			} else {
+				this.stunned = false;
+				this.stunnedTime = 0;
+			}
+		}
+		var target = GlobalGameData.player;
+		this.direction = new kha_math_FastVector2(target.collision.x - this.collision.x,target.collision.y - this.collision.y);
+		var _this = this.direction;
+		var _this1 = this.direction;
+		var x = _this1.x;
+		var y = _this1.y;
+		if(y == null) {
+			y = 0;
+		}
+		if(x == null) {
+			x = 0;
+		}
+		var v_x = x;
+		var v_y = y;
+		var currentLength = Math.sqrt(v_x * v_x + v_y * v_y);
+		if(currentLength != 0) {
+			var mul = 1 / currentLength;
+			v_x *= mul;
+			v_y *= mul;
+		}
+		_this.x = v_x;
+		_this.y = v_y;
+		var _this2 = this.direction;
+		var _this3 = this.direction;
+		var x1 = _this3.x * 86;
+		var y1 = _this3.y * 86;
+		if(y1 == null) {
+			y1 = 0;
+		}
+		if(x1 == null) {
+			x1 = 0;
+		}
+		var v_x1 = x1;
+		var v_y1 = y1;
+		_this2.x = v_x1;
+		_this2.y = v_y1;
+		this.collision.velocityX = this.direction.x;
+		this.collision.velocityY = this.direction.y;
+		this.collision.update(dt);
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,stun: function() {
+		this.stunned = true;
+	}
+	,render: function() {
+		this.display.x = this.collision.x;
+		this.display.y = this.collision.y;
+		if(Math.abs(this.direction.x) > 20 && Math.abs(this.direction.y) > 20) {
+			if(this.direction.x > 0) {
+				if(this.direction.y > 0) {
+					this.display.timeline.playAnimation("walkDiagonalBack");
+				} else {
+					this.display.timeline.playAnimation("walkDiagonalFront");
+				}
+				this.display.scaleX = -1;
+			} else {
+				if(this.direction.y > 0) {
+					this.display.timeline.playAnimation("walkDiagonalBack");
+				} else {
+					this.display.timeline.playAnimation("walkDiagonalFront");
+				}
+				this.display.scaleX = 1;
+			}
+		} else if(Math.abs(this.direction.x) <= 20) {
+			if(this.direction.y > 0) {
+				this.display.timeline.playAnimation("walkBack");
+			} else {
+				this.display.timeline.playAnimation("walkFront");
+			}
+		} else {
+			this.display.timeline.playAnimation("walkSide");
+			if(this.direction.x > 0) {
+				this.display.scaleX = -1;
+			} else {
+				this.display.scaleX = 1;
+			}
+		}
+		this.display.timeline.frameRate = 0.1;
+	}
+	,__class__: gameObjects_Spectre
+});
+var gameObjects_Spider = function(layer,collisions,x,y) {
+	this.stunnedTime = 0;
+	this.stunned = false;
+	com_framework_utils_Entity.call(this);
+	this.parentLayer = layer;
+	this.display = new com_gEngine_display_Sprite("joltik");
+	this.collisionGroup = collisions;
+	this.display.set_smooth(false);
+	layer.addChild(this.display);
+	this.collision = new com_collision_platformer_CollisionBox();
+	this.collisionGroup.add(this.collision);
+	var tmp = this.display.width();
+	this.collision.width = tmp * 0.6;
+	var tmp1 = this.display.height();
+	this.collision.height = tmp1 * 0.4;
+	var tmp2 = this.display.width();
+	this.display.pivotX = tmp2 / 2;
+	this.display.scaleX = this.display.scaleY = 1;
+	this.display.offsetX = -this.collision.width * 0.35;
+	this.display.offsetY = -this.collision.height * 0.8;
+	this.collision.x = x;
+	this.collision.y = y;
+	this.collision.userData = this;
+	this.direction = new kha_math_FastVector2(0,0);
+};
+$hxClasses["gameObjects.Spider"] = gameObjects_Spider;
+gameObjects_Spider.__name__ = "gameObjects.Spider";
+gameObjects_Spider.__super__ = com_framework_utils_Entity;
+gameObjects_Spider.prototype = $extend(com_framework_utils_Entity.prototype,{
+	update: function(dt) {
+		var _this = this.display.timeline;
+		if(!(!_this.playing && !_this.loop) && (this.display.timeline.currentAnimation == "attackFront" || this.display.timeline.currentAnimation == "attackBack" || this.display.timeline.currentAnimation == "attackSide")) {
+			return;
+		}
+		if(this.stunned) {
+			if(this.stunnedTime < GlobalGameData.stunDuration) {
+				this.stunnedTime += dt;
+				return;
+			} else {
+				this.stunned = false;
+				this.stunnedTime = 0;
+			}
+		}
+		var target = GlobalGameData.player;
+		this.direction = new kha_math_FastVector2(target.collision.x - this.collision.x,target.collision.y - this.collision.y);
+		if(Math.abs(this.direction.x) > 0) {
+			if(Math.abs(this.direction.x) > Math.abs(this.direction.y)) {
+				this.direction.y = 0;
+			} else if(Math.abs(this.direction.y) > 0) {
+				this.direction.x = 0;
+			}
+		}
+		var _this1 = this.direction;
+		var _this2 = this.direction;
+		var x = _this2.x;
+		var y = _this2.y;
+		if(y == null) {
+			y = 0;
+		}
+		if(x == null) {
+			x = 0;
+		}
+		var v_x = x;
+		var v_y = y;
+		var currentLength = Math.sqrt(v_x * v_x + v_y * v_y);
+		if(currentLength != 0) {
+			var mul = 1 / currentLength;
+			v_x *= mul;
+			v_y *= mul;
+		}
+		_this1.x = v_x;
+		_this1.y = v_y;
+		var _this3 = this.direction;
+		var _this4 = this.direction;
+		var x1 = _this4.x * 170;
+		var y1 = _this4.y * 170;
+		if(y1 == null) {
+			y1 = 0;
+		}
+		if(x1 == null) {
+			x1 = 0;
+		}
+		var v_x1 = x1;
+		var v_y1 = y1;
+		_this3.x = v_x1;
+		_this3.y = v_y1;
+		this.collision.velocityX = this.direction.x;
+		this.collision.velocityY = this.direction.y;
+		this.collision.update(dt);
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,stun: function() {
+		this.stunned = true;
+	}
+	,render: function() {
+		this.display.x = this.collision.x;
+		this.display.y = this.collision.y;
+		var tmp;
+		var _this = this.display.timeline;
+		if(!(!(!_this.playing && !_this.loop) && (this.display.timeline.currentAnimation == "attackFront" || this.display.timeline.currentAnimation == "attackBack" || this.display.timeline.currentAnimation == "attackSide"))) {
+			var _this1 = this.display.timeline;
+			tmp = !(!_this1.playing && !_this1.loop) && (this.display.timeline.currentAnimation == "damagedFront" || this.display.timeline.currentAnimation == "damagedBack" || this.display.timeline.currentAnimation == "damagedSide");
+		} else {
+			tmp = true;
+		}
+		if(tmp) {
+			return;
+		}
+		var _this2 = this.display.timeline;
+		if(!_this2.playing && !_this2.loop && (this.display.timeline.currentAnimation == "damagedFront" || this.display.timeline.currentAnimation == "damagedBack" || this.display.timeline.currentAnimation == "damagedSide")) {
+			this.parentLayer.remove(this.display);
+		}
+		if(this.collision.velocityX == 0 && this.collision.velocityY == 0) {
+			if(this.direction.x == 0) {
+				if(this.direction.y > 0) {
+					this.display.timeline.playAnimation("idleBack");
+				} else {
+					this.display.timeline.playAnimation("idleFront");
+				}
+			} else {
+				this.display.timeline.playAnimation("idleSide");
+				if(this.direction.x > 0) {
+					this.display.scaleX = -1;
+				} else {
+					this.display.scaleX = 1;
+				}
+			}
+		} else if(this.direction.x == 0) {
+			if(this.direction.y > 0) {
+				this.display.timeline.playAnimation("walkBack");
+			} else {
+				this.display.timeline.playAnimation("walkFront");
+			}
+		} else {
+			this.display.timeline.playAnimation("walkSide");
+			if(this.direction.x > 0) {
+				this.display.scaleX = -1;
+			} else {
+				this.display.scaleX = 1;
+			}
+		}
+		this.display.timeline.frameRate = 0.1;
+	}
+	,attack: function() {
+		if(this.direction.x == 0) {
+			if(this.direction.y > 0) {
+				this.display.timeline.playAnimation("attackBack");
+				this.display.timeline.loop = false;
+			} else {
+				this.display.timeline.playAnimation("attackFront");
+				this.display.timeline.loop = false;
+			}
+		} else {
+			this.display.timeline.playAnimation("attackSide");
+			this.display.timeline.loop = false;
+			if(this.direction.x > 0) {
+				this.display.scaleX = -1;
+			} else {
+				this.display.scaleX = 1;
+			}
+		}
+		this.collision.velocityX = 0;
+		this.collision.velocityY = 0;
+	}
+	,takeDamage: function() {
+		if(this.direction.x == 0) {
+			if(this.direction.y > 0) {
+				this.display.timeline.playAnimation("damagedBack",false);
+			} else {
+				this.display.timeline.playAnimation("damagedFront",false);
+			}
+		} else {
+			this.display.timeline.playAnimation("damagedSide",false);
+			if(this.direction.x > 0) {
+				this.display.scaleX = -1;
+			} else {
+				this.display.scaleX = 1;
+			}
+		}
+		this.collision.removeFromParent();
+	}
+	,__class__: gameObjects_Spider
+});
+var gameObjects_Swapparang = function() {
+	this.totalLifeTime = 0.8;
+	this.lifeTime = 0;
+	com_framework_utils_Entity.call(this);
+	this.display = new com_gEngine_display_Sprite("boomerang");
+	this.display.scaleX = this.display.scaleY = 0.5;
+	this.collision = new com_collision_platformer_CollisionBox();
+	var tmp = this.display.width();
+	this.collision.width = tmp / 32;
+	var tmp1 = this.display.height();
+	this.collision.height = tmp1 / 32;
+	this.display.offsetX = -15;
+	this.display.offsetY = -15;
+	this.collision.userData = this;
+};
+$hxClasses["gameObjects.Swapparang"] = gameObjects_Swapparang;
+gameObjects_Swapparang.__name__ = "gameObjects.Swapparang";
+gameObjects_Swapparang.__super__ = com_framework_utils_Entity;
+gameObjects_Swapparang.prototype = $extend(com_framework_utils_Entity.prototype,{
+	limboStart: function() {
+		this.display.removeFromParent();
+		this.collision.removeFromParent();
+	}
+	,update: function(dt) {
+		this.lifeTime += dt;
+		if(this.lifeTime > this.totalLifeTime) {
+			this.die();
+		}
+		this.collision.update(dt);
+		this.display.x = this.collision.x;
+		this.display.y = this.collision.y;
+		var tmp = this.display.width();
+		this.display.pivotX = tmp * 0.5;
+		var tmp1 = this.display.height();
+		this.display.pivotY = tmp1 * 0.5;
+		var _g = this.display;
+		_g.set_rotation(_g.rotation + Math.PI / 10);
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,toss: function(x,y,dirX,dirY,boomerangCollision) {
+		this.lifeTime = 0;
+		this.collision.x = x;
+		this.collision.y = y;
+		this.collision.velocityX = 400 * dirX;
+		this.collision.velocityY = 400 * dirY;
+		boomerangCollision.add(this.collision);
+		GlobalGameData.simulationLayer.addChild(this.display);
+		this.display.timeline.playAnimation("attack",false);
+	}
+	,__class__: gameObjects_Swapparang
+});
+var gameObjects_Weapon = function() {
+	com_framework_utils_Entity.call(this);
+	this.pool = true;
+	this.slashCollisions = new com_collision_platformer_CollisionGroup();
+};
+$hxClasses["gameObjects.Weapon"] = gameObjects_Weapon;
+gameObjects_Weapon.__name__ = "gameObjects.Weapon";
+gameObjects_Weapon.__super__ = com_framework_utils_Entity;
+gameObjects_Weapon.prototype = $extend(com_framework_utils_Entity.prototype,{
+	swingSword: function(x,y,dirX,dirY) {
+		var slash = this.recycle(gameObjects_Slash);
+		slash.cut(x,y,dirX,dirY,this.slashCollisions);
+	}
+	,__class__: gameObjects_Weapon
+});
+var gameObjects_William = function(x,y,layer) {
+	this.lastOrientationWasVertical = true;
+	this.timeTakingDmg = 0;
+	this.takingDmg = false;
+	this.isSlashing = false;
+	this.maxSpeed = 140;
+	com_framework_utils_Entity.call(this);
+	this.direction = new kha_math_FastVector2(0,1);
+	this.display = new com_gEngine_display_Sprite("william");
+	this.display.set_smooth(false);
+	layer.addChild(this.display);
+	this.collision = new com_collision_platformer_CollisionBox();
+	var tmp = this.display.width();
+	this.collision.width = tmp * 0.4;
+	var tmp1 = this.display.height();
+	this.collision.height = tmp1 * 0.5;
+	var tmp2 = this.display.width();
+	this.display.pivotX = tmp2 / 2;
+	this.display.scaleX = this.display.scaleY = 1;
+	this.collision.x = x;
+	this.collision.y = y;
+	this.display.offsetX = -this.collision.width * 0.5;
+	this.display.offsetY = -this.collision.height * 0.6;
+	this.weapon = new gameObjects_Weapon();
+	this.rangedWeapon = new gameObjects_RangedWeapon();
+	this.instrument = new gameObjects_Instrument();
+	this.addChild(this.weapon);
+	this.addChild(this.rangedWeapon);
+	this.addChild(this.instrument);
+	this.collision.userData = this;
+};
+$hxClasses["gameObjects.William"] = gameObjects_William;
+gameObjects_William.__name__ = "gameObjects.William";
+gameObjects_William.__super__ = com_framework_utils_Entity;
+gameObjects_William.prototype = $extend(com_framework_utils_Entity.prototype,{
+	update: function(dt) {
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+		if(GlobalGameData.bagpipeCoolDown > 0) {
+			GlobalGameData.bagpipeCoolDown -= dt;
+		}
+		if(GlobalGameData.swapparangCoolDown > 0) {
+			GlobalGameData.swapparangCoolDown -= dt;
+		}
+		this.collision.velocityX = 0;
+		this.collision.velocityY = 0;
+		if(this.timeTakingDmg >= 1) {
+			this.timeTakingDmg = 0;
+			this.takingDmg = false;
+		}
+		if(this.takingDmg) {
+			this.timeTakingDmg += dt;
+		}
+		if(this.isSlashing) {
+			return;
+		} else {
+			if(com_framework_utils_Input.i.isKeyCodePressed(37)) {
+				this.lastOrientationWasVertical = false;
+			}
+			if(com_framework_utils_Input.i.isKeyCodePressed(39)) {
+				this.lastOrientationWasVertical = false;
+			}
+			if(com_framework_utils_Input.i.isKeyCodePressed(38)) {
+				this.lastOrientationWasVertical = true;
+			}
+			if(com_framework_utils_Input.i.isKeyCodePressed(40)) {
+				this.lastOrientationWasVertical = true;
+			}
+			if(com_framework_utils_Input.i.isKeyCodeDown(37)) {
+				if(com_framework_utils_Input.i.isKeyCodeDown(38) || com_framework_utils_Input.i.isKeyCodeDown(40)) {
+					if(!this.lastOrientationWasVertical) {
+						this.collision.velocityX = -this.maxSpeed;
+						this.collision.velocityY = 0;
+					}
+				} else {
+					this.collision.velocityX = -this.maxSpeed;
+					this.collision.velocityY = 0;
+				}
+			}
+			if(com_framework_utils_Input.i.isKeyCodeDown(39)) {
+				if(com_framework_utils_Input.i.isKeyCodeDown(38) || com_framework_utils_Input.i.isKeyCodeDown(40)) {
+					if(!this.lastOrientationWasVertical) {
+						this.collision.velocityX = this.maxSpeed;
+						this.collision.velocityY = 0;
+					}
+				} else {
+					this.collision.velocityX = this.maxSpeed;
+					this.collision.velocityY = 0;
+				}
+			}
+			if(com_framework_utils_Input.i.isKeyCodeDown(38)) {
+				if(com_framework_utils_Input.i.isKeyCodeDown(39) || com_framework_utils_Input.i.isKeyCodeDown(37)) {
+					if(this.lastOrientationWasVertical) {
+						this.collision.velocityX = 0;
+						this.collision.velocityY = -this.maxSpeed;
+					}
+				} else {
+					this.collision.velocityX = 0;
+					this.collision.velocityY = -this.maxSpeed;
+				}
+			}
+			if(com_framework_utils_Input.i.isKeyCodeDown(40)) {
+				if(com_framework_utils_Input.i.isKeyCodeDown(39) || com_framework_utils_Input.i.isKeyCodeDown(37)) {
+					if(this.lastOrientationWasVertical) {
+						this.collision.velocityX = 0;
+						this.collision.velocityY = this.maxSpeed;
+					}
+				} else {
+					this.collision.velocityX = 0;
+					this.collision.velocityY = this.maxSpeed;
+				}
+			}
+			if(this.collision.velocityX != 0 || this.collision.velocityY != 0) {
+				var _this = this.direction;
+				var x = this.collision.velocityX;
+				var y = this.collision.velocityY;
+				if(y == null) {
+					y = 0;
+				}
+				if(x == null) {
+					x = 0;
+				}
+				var v_x = x;
+				var v_y = y;
+				_this.x = v_x;
+				_this.y = v_y;
+				var _this1 = this.direction;
+				var _this2 = this.direction;
+				var x1 = _this2.x;
+				var y1 = _this2.y;
+				if(y1 == null) {
+					y1 = 0;
+				}
+				if(x1 == null) {
+					x1 = 0;
+				}
+				var v_x1 = x1;
+				var v_y1 = y1;
+				var currentLength = Math.sqrt(v_x1 * v_x1 + v_y1 * v_y1);
+				if(currentLength != 0) {
+					var mul = 1 / currentLength;
+					v_x1 *= mul;
+					v_y1 *= mul;
+				}
+				_this1.x = v_x1;
+				_this1.y = v_y1;
+			} else if(Math.abs(this.direction.x) > Math.abs(this.direction.y)) {
+				this.direction.y = 0;
+			} else {
+				this.direction.x = 0;
+			}
+			if(com_framework_utils_Input.i.isKeyCodePressed(90)) {
+				this.slash();
+				this.isSlashing = true;
+			}
+			if(com_framework_utils_Input.i.isKeyCodePressed(88) && GlobalGameData.unlockedBagpipe && GlobalGameData.bagpipeCoolDown <= 0) {
+				this.playSong();
+				GlobalGameData.bagpipeCoolDown = 18;
+			}
+			if(com_framework_utils_Input.i.isKeyCodePressed(67) && GlobalGameData.unlockedSwapparang && GlobalGameData.swapparangCoolDown <= 0) {
+				this.tossSwapparang();
+				GlobalGameData.swapparangCoolDown = 2;
+			}
+		}
+		this.collision.update(dt);
+	}
+	,render: function() {
+		this.display.x = this.collision.x;
+		this.display.y = this.collision.y;
+		if(this.collision.velocityX == 0 && this.collision.velocityY == 0) {
+			if(this.direction.x == 0) {
+				if(this.direction.y > 0) {
+					this.display.timeline.playAnimation("idleBack");
+				} else {
+					this.display.timeline.playAnimation("idleFront");
+				}
+			} else {
+				this.display.timeline.playAnimation("idleSide");
+				if(this.direction.x > 0) {
+					this.display.scaleX = -1;
+				} else {
+					this.display.scaleX = 1;
+				}
+			}
+		} else if(this.direction.x == 0) {
+			if(this.direction.y > 0) {
+				this.display.timeline.playAnimation("walkBack");
+			} else {
+				this.display.timeline.playAnimation("walkFront");
+			}
+		} else {
+			this.display.timeline.playAnimation("walkSide");
+			if(this.direction.x > 0) {
+				this.display.scaleX = -1;
+			} else {
+				this.display.scaleX = 1;
+			}
+		}
+		this.display.timeline.frameRate = 0.1;
+	}
+	,slash: function() {
+		com_soundLib_SoundManager.playFx("slashSoundEffect");
+		com_soundLib_SoundManager.musicVolume(0.4);
+		this.weapon.swingSword(this.collision.x,this.collision.y,this.direction.x,this.direction.y);
+	}
+	,tossSwapparang: function() {
+		this.rangedWeapon.tossSwapparang(this.collision.x + 8,this.collision.y + 6,this.direction.x,this.direction.y);
+	}
+	,playSong: function() {
+		com_soundLib_SoundManager.playFx("bagpipeSoundEffect");
+		com_soundLib_SoundManager.musicVolume(0.4);
+		this.instrument.play(this.collision.x,this.collision.y,this.direction.x,this.direction.y);
+	}
+	,takeDamage: function() {
+		if(!this.takingDmg) {
+			this.takingDmg = true;
+			GlobalGameData.lives--;
+		}
+	}
+	,__class__: gameObjects_William
 });
 var haxe_IMap = function() { };
 $hxClasses["haxe.IMap"] = haxe_IMap;
@@ -8636,6 +10363,12 @@ haxe_io_Bytes.prototype = {
 			this.b.set(src.b.subarray(srcpos,srcpos + len),pos);
 		}
 	}
+	,getFloat: function(pos) {
+		if(this.data == null) {
+			this.data = new DataView(this.b.buffer,this.b.byteOffset,this.b.byteLength);
+		}
+		return this.data.getFloat32(pos,true);
+	}
 	,getInt32: function(pos) {
 		if(this.data == null) {
 			this.data = new DataView(this.b.buffer,this.b.byteOffset,this.b.byteLength);
@@ -8769,6 +10502,134 @@ haxe_crypto_BaseCode.prototype = {
 		return out;
 	}
 	,__class__: haxe_crypto_BaseCode
+};
+var haxe_ds_ArraySort = function() { };
+$hxClasses["haxe.ds.ArraySort"] = haxe_ds_ArraySort;
+haxe_ds_ArraySort.__name__ = "haxe.ds.ArraySort";
+haxe_ds_ArraySort.sort = function(a,cmp) {
+	haxe_ds_ArraySort.rec(a,cmp,0,a.length);
+};
+haxe_ds_ArraySort.rec = function(a,cmp,from,to) {
+	var middle = from + to >> 1;
+	if(to - from < 12) {
+		if(to <= from) {
+			return;
+		}
+		var _g = from + 1;
+		while(_g < to) {
+			var i = _g++;
+			var j = i;
+			while(j > from) {
+				if(cmp(a[j],a[j - 1]) < 0) {
+					haxe_ds_ArraySort.swap(a,j - 1,j);
+				} else {
+					break;
+				}
+				--j;
+			}
+		}
+		return;
+	}
+	haxe_ds_ArraySort.rec(a,cmp,from,middle);
+	haxe_ds_ArraySort.rec(a,cmp,middle,to);
+	haxe_ds_ArraySort.doMerge(a,cmp,from,middle,to,middle - from,to - middle);
+};
+haxe_ds_ArraySort.doMerge = function(a,cmp,from,pivot,to,len1,len2) {
+	var first_cut;
+	var second_cut;
+	var len11;
+	var len22;
+	if(len1 == 0 || len2 == 0) {
+		return;
+	}
+	if(len1 + len2 == 2) {
+		if(cmp(a[pivot],a[from]) < 0) {
+			haxe_ds_ArraySort.swap(a,pivot,from);
+		}
+		return;
+	}
+	if(len1 > len2) {
+		len11 = len1 >> 1;
+		first_cut = from + len11;
+		second_cut = haxe_ds_ArraySort.lower(a,cmp,pivot,to,first_cut);
+		len22 = second_cut - pivot;
+	} else {
+		len22 = len2 >> 1;
+		second_cut = pivot + len22;
+		first_cut = haxe_ds_ArraySort.upper(a,cmp,from,pivot,second_cut);
+		len11 = first_cut - from;
+	}
+	haxe_ds_ArraySort.rotate(a,cmp,first_cut,pivot,second_cut);
+	var new_mid = first_cut + len22;
+	haxe_ds_ArraySort.doMerge(a,cmp,from,first_cut,new_mid,len11,len22);
+	haxe_ds_ArraySort.doMerge(a,cmp,new_mid,second_cut,to,len1 - len11,len2 - len22);
+};
+haxe_ds_ArraySort.rotate = function(a,cmp,from,mid,to) {
+	if(from == mid || mid == to) {
+		return;
+	}
+	var n = haxe_ds_ArraySort.gcd(to - from,mid - from);
+	while(n-- != 0) {
+		var val = a[from + n];
+		var shift = mid - from;
+		var p1 = from + n;
+		var p2 = from + n + shift;
+		while(p2 != from + n) {
+			a[p1] = a[p2];
+			p1 = p2;
+			if(to - p2 > shift) {
+				p2 += shift;
+			} else {
+				p2 = from + (shift - (to - p2));
+			}
+		}
+		a[p1] = val;
+	}
+};
+haxe_ds_ArraySort.gcd = function(m,n) {
+	while(n != 0) {
+		var t = m % n;
+		m = n;
+		n = t;
+	}
+	return m;
+};
+haxe_ds_ArraySort.upper = function(a,cmp,from,to,val) {
+	var len = to - from;
+	var half;
+	var mid;
+	while(len > 0) {
+		half = len >> 1;
+		mid = from + half;
+		if(cmp(a[val],a[mid]) < 0) {
+			len = half;
+		} else {
+			from = mid + 1;
+			len = len - half - 1;
+		}
+	}
+	return from;
+};
+haxe_ds_ArraySort.lower = function(a,cmp,from,to,val) {
+	var len = to - from;
+	var half;
+	var mid;
+	while(len > 0) {
+		half = len >> 1;
+		mid = from + half;
+		if(cmp(a[mid],a[val]) < 0) {
+			from = mid + 1;
+			len = len - half - 1;
+		} else {
+			len = half;
+		}
+	}
+	return from;
+};
+haxe_ds_ArraySort.swap = function(a,i,j) {
+	var tmp = a[i];
+	a[i] = a[j];
+	a[j] = tmp;
 };
 var haxe_ds_IntMap = function() {
 	this.h = { };
@@ -9113,6 +10974,22 @@ haxe_io_Output.prototype = {
 			l -= k;
 		}
 	}
+	,writeFloat: function(x) {
+		this.writeInt32(haxe_io_FPHelper.floatToI32(x));
+	}
+	,writeInt32: function(x) {
+		if(this.bigEndian) {
+			this.writeByte(x >>> 24);
+			this.writeByte(x >> 16 & 255);
+			this.writeByte(x >> 8 & 255);
+			this.writeByte(x & 255);
+		} else {
+			this.writeByte(x & 255);
+			this.writeByte(x >> 8 & 255);
+			this.writeByte(x >> 16 & 255);
+			this.writeByte(x >>> 24);
+		}
+	}
 	,__class__: haxe_io_Output
 };
 var haxe_io_BytesOutput = function() {
@@ -9149,6 +11026,13 @@ var haxe_io_Error = $hxEnums["haxe.io.Error"] = { __ename__ : true, __constructs
 	,Overflow: {_hx_index:1,__enum__:"haxe.io.Error",toString:$estr}
 	,OutsideBounds: {_hx_index:2,__enum__:"haxe.io.Error",toString:$estr}
 	,Custom: ($_=function(e) { return {_hx_index:3,e:e,__enum__:"haxe.io.Error",toString:$estr}; },$_.__params__ = ["e"],$_)
+};
+var haxe_io_FPHelper = function() { };
+$hxClasses["haxe.io.FPHelper"] = haxe_io_FPHelper;
+haxe_io_FPHelper.__name__ = "haxe.io.FPHelper";
+haxe_io_FPHelper.floatToI32 = function(f) {
+	haxe_io_FPHelper.helper.setFloat32(0,f,true);
+	return haxe_io_FPHelper.helper.getInt32(0,true);
 };
 var haxe_io_StringInput = function(s) {
 	haxe_io_BytesInput.call(this,haxe_io_Bytes.ofString(s));
@@ -10586,10 +12470,42 @@ js_Boot.__resolveNativeClass = function(name) {
 	return $global[name];
 };
 var kha__$Assets_ImageList = function() {
-	this.samusDescription = { name : "samus", original_height : 85, file_sizes : [9871], original_width : 219, files : ["samus.png"], type : "image"};
-	this.samus = null;
-	this.gameOverDescription = { name : "gameOver", original_height : 244, file_sizes : [17088], original_width : 231, files : ["gameOver.png"], type : "image"};
-	this.gameOver = null;
+	this.williamDescription = { name : "william", original_height : 192, file_sizes : [5533], original_width : 96, files : ["william.png"], type : "image"};
+	this.william = null;
+	this.unlockableItemsDescription = { name : "unlockableItems", original_height : 384, file_sizes : [13973], original_width : 144, files : ["unlockableItems.png"], type : "image"};
+	this.unlockableItems = null;
+	this.tile_terrainDescription = { name : "tile_terrain", original_height : 1024, file_sizes : [336339], original_width : 1024, files : ["tile_terrain.png"], type : "image"};
+	this.tile_terrain = null;
+	this.tile_indoorsDescription = { name : "tile_indoors", original_height : 192, file_sizes : [18508], original_width : 176, files : ["tile_indoors.png"], type : "image"};
+	this.tile_indoors = null;
+	this.tile_crystalDescription = { name : "tile_crystal", original_height : 160, file_sizes : [1794], original_width : 160, files : ["tile_crystal.png"], type : "image"};
+	this.tile_crystal = null;
+	this.songDescription = { name : "song", original_height : 188, file_sizes : [3113], original_width : 240, files : ["song.png"], type : "image"};
+	this.song = null;
+	this.slash_attackDescription = { name : "slash_attack", original_height : 36, file_sizes : [1170], original_width : 180, files : ["slash_attack.png"], type : "image"};
+	this.slash_attack = null;
+	this.skeleton2nobackgDescription = { name : "skeleton2nobackg", original_height : 38, file_sizes : [759], original_width : 35, files : ["skeleton2nobackg.png"], type : "image"};
+	this.skeleton2nobackg = null;
+	this.skeleton1nobackgDescription = { name : "skeleton1nobackg", original_height : 35, file_sizes : [863], original_width : 40, files : ["skeleton1nobackg.png"], type : "image"};
+	this.skeleton1nobackg = null;
+	this.playerLifeDescription = { name : "playerLife", original_height : 66, file_sizes : [670], original_width : 66, files : ["playerLife.png"], type : "image"};
+	this.playerLife = null;
+	this.joltikDescription = { name : "joltik", original_height : 96, file_sizes : [5682], original_width : 192, files : ["joltik.png"], type : "image"};
+	this.joltik = null;
+	this.golemDescription = { name : "golem", original_height : 144, file_sizes : [5492], original_width : 144, files : ["golem.png"], type : "image"};
+	this.golem = null;
+	this.darkraiDescription = { name : "darkrai", original_height : 160, file_sizes : [4989], original_width : 96, files : ["darkrai.png"], type : "image"};
+	this.darkrai = null;
+	this.brokenHeartDescription = { name : "brokenHeart", original_height : 192, file_sizes : [876], original_width : 212, files : ["brokenHeart.png"], type : "image"};
+	this.brokenHeart = null;
+	this.boomerangDescription = { name : "boomerang", original_height : 32, file_sizes : [463], original_width : 32, files : ["boomerang.png"], type : "image"};
+	this.boomerang = null;
+	this.book3nobackgDescription = { name : "book3nobackg", original_height : 16, file_sizes : [298], original_width : 13, files : ["book3nobackg.png"], type : "image"};
+	this.book3nobackg = null;
+	this.book2nobackgDescription = { name : "book2nobackg", original_height : 14, file_sizes : [455], original_width : 17, files : ["book2nobackg.png"], type : "image"};
+	this.book2nobackg = null;
+	this.book1nobackgDescription = { name : "book1nobackg", original_height : 14, file_sizes : [438], original_width : 17, files : ["book1nobackg.png"], type : "image"};
+	this.book1nobackg = null;
 };
 $hxClasses["kha._Assets.ImageList"] = kha__$Assets_ImageList;
 kha__$Assets_ImageList.__name__ = "kha._Assets.ImageList";
@@ -10599,20 +12515,41 @@ kha__$Assets_ImageList.prototype = {
 	}
 	,__class__: kha__$Assets_ImageList
 };
+var kha__$Assets_SoundList = function() {
+	this.slashSoundEffectDescription = { name : "slashSoundEffect", file_sizes : [12588], files : ["slashSoundEffect.ogg"], type : "sound"};
+	this.slashSoundEffect = null;
+	this.finalStageThemeDescription = { name : "finalStageTheme", file_sizes : [2420064], files : ["finalStageTheme.ogg"], type : "sound"};
+	this.finalStageTheme = null;
+	this.finalBattleThemeDescription = { name : "finalBattleTheme", file_sizes : [1543288], files : ["finalBattleTheme.ogg"], type : "sound"};
+	this.finalBattleTheme = null;
+	this.bagpipeSoundEffectDescription = { name : "bagpipeSoundEffect", file_sizes : [37232], files : ["bagpipeSoundEffect.ogg"], type : "sound"};
+	this.bagpipeSoundEffect = null;
+	this.ambientalThemeDescription = { name : "ambientalTheme", file_sizes : [1575896], files : ["ambientalTheme.ogg"], type : "sound"};
+	this.ambientalTheme = null;
+};
+$hxClasses["kha._Assets.SoundList"] = kha__$Assets_SoundList;
+kha__$Assets_SoundList.__name__ = "kha._Assets.SoundList";
+kha__$Assets_SoundList.prototype = {
+	get: function(name) {
+		return Reflect.field(this,name);
+	}
+	,__class__: kha__$Assets_SoundList
+};
 var kha__$Assets_BlobList = function() {
-	this.tile_terrain_1_tsxDescription = { name : "tile_terrain_1_tsx", file_sizes : [240], files : ["tile_terrain_1.tsx"], type : "blob"};
-	this.tile_terrain_1_tsx = null;
-	this.tile_red_crystal_tsxDescription = { name : "tile_red_crystal_tsx", file_sizes : [279], files : ["tile_red_crystal.tsx"], type : "blob"};
-	this.tile_red_crystal_tsx = null;
-	this.tile_indoors_1_tsxDescription = { name : "tile_indoors_1_tsx", file_sizes : [291], files : ["tile_indoors_1.tsx"], type : "blob"};
-	this.tile_indoors_1_tsx = null;
-	this.tile_dungeon_1_tsxDescription = { name : "tile_dungeon_1_tsx", file_sizes : [264], files : ["tile_dungeon_1.tsx"], type : "blob"};
-	this.tile_dungeon_1_tsx = null;
-	this.samus_xmlDescription = { name : "samus_xml", file_sizes : [865], files : ["samus.xml"], type : "blob"};
-	this.samus_xml = null;
-	this.finalRoom_tmxDescription = { name : "finalRoom_tmx", file_sizes : [15353], files : ["finalRoom.tmx"], type : "blob"};
-	this.finalRoom_tmxName = "finalRoom_tmx";
-	this.finalRoom_tmx = null;
+	this.startingArea_tmxDescription = { name : "startingArea_tmx", file_sizes : [14569], files : ["startingArea.tmx"], type : "blob"};
+	this.startingArea_tmx = null;
+	this.startingAreaRoom_tmxDescription = { name : "startingAreaRoom_tmx", file_sizes : [11725], files : ["startingAreaRoom.tmx"], type : "blob"};
+	this.startingAreaRoom_tmx = null;
+	this.southwestArea_tmxDescription = { name : "southwestArea_tmx", file_sizes : [14489], files : ["southwestArea.tmx"], type : "blob"};
+	this.southwestArea_tmx = null;
+	this.objects_tsxDescription = { name : "objects_tsx", file_sizes : [760], files : ["objects.tsx"], type : "blob"};
+	this.objects_tsx = null;
+	this.northeastArea_tmxDescription = { name : "northeastArea_tmx", file_sizes : [13610], files : ["northeastArea.tmx"], type : "blob"};
+	this.northeastArea_tmx = null;
+	this.northeastAreaRoom_tmxDescription = { name : "northeastAreaRoom_tmx", file_sizes : [11648], files : ["northeastAreaRoom.tmx"], type : "blob"};
+	this.northeastAreaRoom_tmx = null;
+	this.finalArea_tmxDescription = { name : "finalArea_tmx", file_sizes : [12720], files : ["finalArea.tmx"], type : "blob"};
+	this.finalArea_tmx = null;
 };
 $hxClasses["kha._Assets.BlobList"] = kha__$Assets_BlobList;
 kha__$Assets_BlobList.__name__ = "kha._Assets.BlobList";
@@ -10625,13 +12562,17 @@ kha__$Assets_BlobList.prototype = {
 var kha__$Assets_FontList = function() {
 	this.mainfontDescription = { name : "mainfont", file_sizes : [91504], files : ["mainfont.ttf"], type : "font"};
 	this.mainfont = null;
-	this.Kenney_ThickDescription = { name : "Kenney_Thick", file_sizes : [9448], files : ["Kenney Thick.ttf"], type : "font"};
-	this.Kenney_Thick = null;
+	this.Kenney_PixelDescription = { name : "Kenney_Pixel", file_sizes : [28276], files : ["Kenney Pixel.ttf"], type : "font"};
+	this.Kenney_PixelName = "Kenney_Pixel";
+	this.Kenney_Pixel = null;
 };
 $hxClasses["kha._Assets.FontList"] = kha__$Assets_FontList;
 kha__$Assets_FontList.__name__ = "kha._Assets.FontList";
 kha__$Assets_FontList.prototype = {
-	__class__: kha__$Assets_FontList
+	get: function(name) {
+		return Reflect.field(this,name);
+	}
+	,__class__: kha__$Assets_FontList
 };
 var kha_Assets = function() { };
 $hxClasses["kha.Assets"] = kha_Assets;
@@ -10649,6 +12590,14 @@ kha_Assets.loadBlob = function(name,done,failed,pos) {
 		kha_Assets.blobs[name] = blob;
 		done(blob);
 	},kha_Assets.reporter(failed,pos));
+};
+kha_Assets.loadSound = function(name,done,failed,pos) {
+	var description = Reflect.field(kha_Assets.sounds,name + "Description");
+	kha_LoaderImpl.loadSoundFromDescription(description,function(sound) {
+		kha_Assets.sounds[name] = sound;
+		done(sound);
+	},kha_Assets.reporter(failed,pos));
+	return;
 };
 kha_Assets.loadFont = function(name,done,failed,pos) {
 	var description = Reflect.field(kha_Assets.fonts,name + "Description");
@@ -11163,6 +13112,70 @@ kha_LoaderImpl.loadImageFromDescription = function(desc,done,failed) {
 		};
 		img.crossOrigin = "";
 		img.src = desc.files[0];
+	}
+};
+kha_LoaderImpl.loadSoundFromDescription = function(desc,done,failed) {
+	if(kha_SystemImpl._hasWebAudio) {
+		var _g = 0;
+		var _g1 = desc.files.length;
+		while(_g < _g1) {
+			var i = _g++;
+			var file = desc.files[i];
+			if(StringTools.endsWith(file,".ogg")) {
+				new kha_js_WebAudioSound(file,done,failed);
+				return;
+			}
+		}
+	} else if(kha_SystemImpl.mobile) {
+		var element = window.document.createElement("audio");
+		if(element.canPlayType("audio/mp4") != "") {
+			var _g2 = 0;
+			var _g11 = desc.files.length;
+			while(_g2 < _g11) {
+				var i1 = _g2++;
+				var file1 = desc.files[i1];
+				if(StringTools.endsWith(file1,".mp4")) {
+					new kha_js_MobileWebAudioSound(file1,done,failed);
+					return;
+				}
+			}
+		}
+		if(element.canPlayType("audio/mp3") != "") {
+			var _g3 = 0;
+			var _g12 = desc.files.length;
+			while(_g3 < _g12) {
+				var i2 = _g3++;
+				var file2 = desc.files[i2];
+				if(StringTools.endsWith(file2,".mp3")) {
+					new kha_js_MobileWebAudioSound(file2,done,failed);
+					return;
+				}
+			}
+		}
+		if(element.canPlayType("audio/wav") != "") {
+			var _g4 = 0;
+			var _g13 = desc.files.length;
+			while(_g4 < _g13) {
+				var i3 = _g4++;
+				var file3 = desc.files[i3];
+				if(StringTools.endsWith(file3,".wav")) {
+					new kha_js_MobileWebAudioSound(file3,done,failed);
+					return;
+				}
+			}
+		}
+		var _g5 = 0;
+		var _g14 = desc.files.length;
+		while(_g5 < _g14) {
+			var i4 = _g5++;
+			var file4 = desc.files[i4];
+			if(StringTools.endsWith(file4,".ogg")) {
+				new kha_js_MobileWebAudioSound(file4,done,failed);
+				return;
+			}
+		}
+	} else {
+		new kha_js_Sound(desc.files,done,failed);
 	}
 };
 kha_LoaderImpl.loadRemote = function(desc,done,failed) {
@@ -11876,6 +13889,7 @@ kha_Shaders.init = function() {
 	kha_Shaders.vBlurVertexShader_vert = new kha_graphics4_VertexShader(blobs40,["vBlurVertexShader.vert.essl","vBlurVertexShader-webgl2.vert.essl"]);
 };
 var kha_Sound = function() {
+	this.sampleRate = 0;
 	this.channels = 0;
 	this.length = 0;
 };
@@ -11883,7 +13897,45 @@ $hxClasses["kha.Sound"] = kha_Sound;
 kha_Sound.__name__ = "kha.Sound";
 kha_Sound.__interfaces__ = [kha_Resource];
 kha_Sound.prototype = {
-	__class__: kha_Sound
+	uncompress: function(done) {
+		if(this.uncompressedData != null) {
+			done();
+			return;
+		}
+		var output = new haxe_io_BytesOutput();
+		var header = kha_audio2_ogg_vorbis_Reader.readAll(this.compressedData,output,true);
+		var soundBytes = output.getBytes();
+		var count = soundBytes.length / 4 | 0;
+		if(header.channel == 1) {
+			this.length = count / kha_audio2_Audio.samplesPerSecond;
+			var this1 = new Float32Array(count * 2);
+			this.uncompressedData = this1;
+			var _g = 0;
+			while(_g < count) {
+				var i = _g++;
+				this.uncompressedData[i * 2] = soundBytes.getFloat(i * 4);
+				this.uncompressedData[i * 2 + 1] = soundBytes.getFloat(i * 4);
+			}
+		} else {
+			this.length = count / 2 / kha_audio2_Audio.samplesPerSecond;
+			var this2 = new Float32Array(count);
+			this.uncompressedData = this2;
+			var _g1 = 0;
+			while(_g1 < count) {
+				var i1 = _g1++;
+				this.uncompressedData[i1] = soundBytes.getFloat(i1 * 4);
+			}
+		}
+		this.channels = header.channel;
+		this.sampleRate = header.sampleRate;
+		this.compressedData = null;
+		done();
+	}
+	,unload: function() {
+		this.compressedData = null;
+		this.uncompressedData = null;
+	}
+	,__class__: kha_Sound
 };
 var kha_SystemOptions = function(title,width,height,$window,framebuffer) {
 	if(height == null) {
@@ -13273,6 +15325,24 @@ kha_audio2_Audio.wakeChannels = function() {
 		channel.wake();
 	}
 };
+kha_audio2_Audio.stream = function(sound,loop) {
+	if(loop == null) {
+		loop = false;
+	}
+	var element = window.document.createElement("audio");
+	var blob = new Blob([sound.compressedData.b.bufferValue],{ type : "audio/ogg"});
+	element.src = URL.createObjectURL(blob);
+	element.loop = loop;
+	var channel = new kha_js_AEAudioChannel(element,loop);
+	if(kha_SystemImpl.mobileAudioPlaying) {
+		channel.play();
+		return channel;
+	} else {
+		var virtualChannel = new kha_audio2_VirtualStreamChannel(channel,loop);
+		kha_audio2_Audio.virtualChannels.push(virtualChannel);
+		return virtualChannel;
+	}
+};
 var kha_audio2_Audio1 = function() { };
 $hxClasses["kha.audio2.Audio1"] = kha_audio2_Audio1;
 kha_audio2_Audio1.__name__ = "kha.audio2.Audio1";
@@ -13377,6 +15447,58 @@ kha_audio2_Audio1.mix = function(samplesBox,buffer) {
 		}
 	}
 };
+kha_audio2_Audio1.play = function(sound,loop) {
+	if(loop == null) {
+		loop = false;
+	}
+	var channel = null;
+	if(kha_audio2_Audio.samplesPerSecond != sound.sampleRate) {
+		channel = new kha_audio2_ResamplingAudioChannel(loop,sound.sampleRate);
+	} else {
+		channel = new kha_audio2_AudioChannel(loop);
+	}
+	channel.data = sound.uncompressedData;
+	var foundChannel = false;
+	var _g = 0;
+	while(_g < 32) {
+		var i = _g++;
+		if(kha_audio2_Audio1.soundChannels[i] == null || kha_audio2_Audio1.soundChannels[i].get_finished()) {
+			kha_audio2_Audio1.soundChannels[i] = channel;
+			foundChannel = true;
+			break;
+		}
+	}
+	if(foundChannel) {
+		return channel;
+	} else {
+		return null;
+	}
+};
+kha_audio2_Audio1.stream = function(sound,loop) {
+	if(loop == null) {
+		loop = false;
+	}
+	var hardwareChannel = kha_audio2_Audio.stream(sound,loop);
+	if(hardwareChannel != null) {
+		return hardwareChannel;
+	}
+	var channel = new kha_audio2_StreamChannel(sound.compressedData,loop);
+	var foundChannel = false;
+	var _g = 0;
+	while(_g < 32) {
+		var i = _g++;
+		if(kha_audio2_Audio1.streamChannels[i] == null || kha_audio2_Audio1.streamChannels[i].get_finished()) {
+			kha_audio2_Audio1.streamChannels[i] = channel;
+			foundChannel = true;
+			break;
+		}
+	}
+	if(foundChannel) {
+		return channel;
+	} else {
+		return null;
+	}
+};
 var kha_audio2_AudioChannel = function(looping) {
 	this.looping = false;
 	this.stopped = false;
@@ -13419,8 +15541,15 @@ kha_audio2_AudioChannel.prototype = {
 		}
 		while(requestedSamplesIndex < requestedLength) requestedSamples[requestedSamplesIndex++] = 0;
 	}
+	,stop: function() {
+		this.myPosition = 0;
+		this.stopped = true;
+	}
 	,get_volume: function() {
 		return this.myVolume;
+	}
+	,set_volume: function(value) {
+		return this.myVolume = value;
 	}
 	,get_finished: function() {
 		return this.stopped;
@@ -13441,6 +15570,100 @@ kha_audio2_Buffer.__name__ = "kha.audio2.Buffer";
 kha_audio2_Buffer.prototype = {
 	__class__: kha_audio2_Buffer
 };
+var kha_audio2_ResamplingAudioChannel = function(looping,sampleRate) {
+	kha_audio2_AudioChannel.call(this,looping);
+	this.sampleRate = sampleRate;
+};
+$hxClasses["kha.audio2.ResamplingAudioChannel"] = kha_audio2_ResamplingAudioChannel;
+kha_audio2_ResamplingAudioChannel.__name__ = "kha.audio2.ResamplingAudioChannel";
+kha_audio2_ResamplingAudioChannel.__super__ = kha_audio2_AudioChannel;
+kha_audio2_ResamplingAudioChannel.prototype = $extend(kha_audio2_AudioChannel.prototype,{
+	nextSamples: function(requestedSamples,requestedLength,sampleRate) {
+		if(this.paused || this.stopped) {
+			var _g = 0;
+			while(_g < requestedLength) {
+				var i = _g++;
+				requestedSamples[i] = 0;
+			}
+			return;
+		}
+		var requestedSamplesIndex = 0;
+		while(requestedSamplesIndex < requestedLength) {
+			var _g1 = 0;
+			var value = Math.ceil(this.data.length * (sampleRate / this.sampleRate));
+			var a = (value % 2 == 0 ? value : value + 1) - this.myPosition;
+			var b = requestedLength - requestedSamplesIndex;
+			var _g11 = a < b ? a : b;
+			while(_g1 < _g11) {
+				++_g1;
+				var index = requestedSamplesIndex++;
+				var position = this.myPosition++;
+				var even = position % 2 == 0;
+				var factor = this.sampleRate / sampleRate;
+				var value1;
+				if(even) {
+					position = position / 2 | 0;
+					var pos = factor * position;
+					var pos1 = Math.floor(pos);
+					var pos2 = Math.floor(pos + 1);
+					pos1 *= 2;
+					pos2 *= 2;
+					var maximum = this.data.length - 1;
+					if(maximum % 2 == 0) {
+						maximum = maximum;
+					} else {
+						--maximum;
+					}
+					var a1 = pos1 < 0 || pos1 > maximum ? 0 : this.data[pos1];
+					var b1 = pos2 < 0 || pos2 > maximum ? 0 : this.data[pos2];
+					var t = pos - Math.floor(pos);
+					value1 = (1 - t) * a1 + t * b1;
+				} else {
+					position = position / 2 | 0;
+					var pos3 = factor * position;
+					var pos11 = Math.floor(pos3);
+					var pos21 = Math.floor(pos3 + 1);
+					pos11 = pos11 * 2 + 1;
+					pos21 = pos21 * 2 + 1;
+					var maximum1 = this.data.length - 1;
+					if(maximum1 % 2 != 0) {
+						maximum1 = maximum1;
+					} else {
+						--maximum1;
+					}
+					var a2 = pos11 < 1 || pos11 > maximum1 ? 0 : this.data[pos11];
+					var b2 = pos21 < 1 || pos21 > maximum1 ? 0 : this.data[pos21];
+					var t1 = pos3 - Math.floor(pos3);
+					value1 = (1 - t1) * a2 + t1 * b2;
+				}
+				requestedSamples[index] = value1;
+			}
+			var value2 = Math.ceil(this.data.length * (sampleRate / this.sampleRate));
+			if(this.myPosition >= (value2 % 2 == 0 ? value2 : value2 + 1)) {
+				this.myPosition = 0;
+				if(!this.looping) {
+					this.stopped = true;
+					break;
+				}
+			}
+		}
+		while(requestedSamplesIndex < requestedLength) requestedSamples[requestedSamplesIndex++] = 0;
+	}
+	,stop: function() {
+		this.myPosition = 0;
+		this.stopped = true;
+	}
+	,get_volume: function() {
+		return this.myVolume;
+	}
+	,set_volume: function(value) {
+		return this.myVolume = value;
+	}
+	,get_finished: function() {
+		return this.stopped;
+	}
+	,__class__: kha_audio2_ResamplingAudioChannel
+});
 var kha_audio2_StreamChannel = function(data,loop) {
 	this.paused = false;
 	this.atend = false;
@@ -13475,8 +15698,14 @@ kha_audio2_StreamChannel.prototype = {
 			}
 		}
 	}
+	,stop: function() {
+		this.atend = true;
+	}
 	,get_volume: function() {
 		return this.myVolume;
+	}
+	,set_volume: function(value) {
+		return this.myVolume = value;
 	}
 	,get_finished: function() {
 		return this.atend;
@@ -13514,8 +15743,19 @@ kha_audio2_VirtualStreamChannel.prototype = {
 		}
 		this.lastTickTime = now;
 	}
+	,stop: function() {
+		if(kha_SystemImpl.mobileAudioPlaying) {
+			this.aeChannel.stop();
+		} else {
+			this.updatePosition();
+			this.mode = 0;
+		}
+	}
 	,get_length: function() {
 		return this.aeChannel.get_length();
+	}
+	,set_volume: function(value) {
+		return this.aeChannel.set_volume(value);
 	}
 	,__class__: kha_audio2_VirtualStreamChannel
 };
@@ -13562,6 +15802,33 @@ kha_audio2_ogg_vorbis_Reader.openFromBytes = function(bytes) {
 };
 kha_audio2_ogg_vorbis_Reader.seekBytes = function(bytes,pos) {
 	bytes.set_position(pos);
+};
+kha_audio2_ogg_vorbis_Reader.readAll = function(bytes,output,useFloat) {
+	if(useFloat == null) {
+		useFloat = false;
+	}
+	var input = new haxe_io_BytesInput(bytes);
+	var decoder = kha_audio2_ogg_vorbis_VorbisDecoder.start(input);
+	var bytes1 = input;
+	decoder.setupSampleNumber(function(pos) {
+		kha_audio2_ogg_vorbis_Reader.seekBytes(bytes1,pos);
+	},bytes.length);
+	var header = decoder.header;
+	var this1 = new Float32Array(4096 * header.channel);
+	var buffer = this1;
+	while(true) {
+		var n = decoder.read(buffer,4096,header.channel,header.sampleRate,useFloat);
+		var _g = 0;
+		var _g1 = n * header.channel;
+		while(_g < _g1) {
+			var i = _g++;
+			output.writeFloat(buffer[i]);
+		}
+		if(n == 0) {
+			break;
+		}
+	}
+	return decoder.header;
 };
 kha_audio2_ogg_vorbis_Reader.prototype = {
 	get_header: function() {
@@ -22049,6 +24316,15 @@ kha_js_AEAudioChannel.prototype = {
 		this.stopped = false;
 		this.element.play();
 	}
+	,stop: function() {
+		try {
+			this.element.pause();
+			this.element.currentTime = 0;
+			this.stopped = true;
+		} catch( e ) {
+			haxe_Log.trace(((e) instanceof js__$Boot_HaxeError) ? e.val : e,{ fileName : "kha/js/AEAudioChannel.hx", lineNumber : 37, className : "kha.js.AEAudioChannel", methodName : "stop"});
+		}
+	}
 	,get_length: function() {
 		if(isFinite(this.element.duration)) {
 			return this.element.duration;
@@ -22058,6 +24334,9 @@ kha_js_AEAudioChannel.prototype = {
 	}
 	,set_position: function(value) {
 		return this.element.currentTime = value;
+	}
+	,set_volume: function(value) {
+		return this.element.volume = value;
 	}
 	,__class__: kha_js_AEAudioChannel
 };
@@ -22323,6 +24602,18 @@ kha_js_MobileWebAudioChannel.prototype = {
 			this.source.start();
 		}
 	}
+	,stop: function() {
+		var wasStopped = this.paused || this.stopped;
+		this.paused = false;
+		this.stopped = true;
+		if(wasStopped) {
+			return;
+		}
+		this.source.stop();
+	}
+	,set_volume: function(value) {
+		return this.gain.gain.value = value;
+	}
 	,__class__: kha_js_MobileWebAudioChannel
 };
 var kha_js_MobileWebAudioSound = function(filename,done,failed) {
@@ -22352,7 +24643,10 @@ $hxClasses["kha.js.MobileWebAudioSound"] = kha_js_MobileWebAudioSound;
 kha_js_MobileWebAudioSound.__name__ = "kha.js.MobileWebAudioSound";
 kha_js_MobileWebAudioSound.__super__ = kha_Sound;
 kha_js_MobileWebAudioSound.prototype = $extend(kha_Sound.prototype,{
-	__class__: kha_js_MobileWebAudioSound
+	uncompress: function(done) {
+		done();
+	}
+	,__class__: kha_js_MobileWebAudioSound
 });
 var kha_js_Sound = function(filenames,done,failed) {
 	kha_Sound.call(this);
@@ -22409,7 +24703,71 @@ kha_js_Sound.prototype = $extend(kha_Sound.prototype,{
 		this.done(this);
 		HxOverrides.remove(kha_js_Sound.loading,this);
 	}
+	,uncompress: function(done) {
+		done();
+	}
 	,__class__: kha_js_Sound
+});
+var kha_js_WebAudioSound = function(filename,done,failed) {
+	var _gthis = this;
+	kha_Sound.call(this);
+	var request = new XMLHttpRequest();
+	request.open("GET",filename,true);
+	request.responseType = "arraybuffer";
+	request.onerror = function() {
+		failed({ url : filename});
+	};
+	request.onload = function() {
+		_gthis.compressedData = haxe_io_Bytes.ofData(request.response);
+		_gthis.uncompressedData = null;
+		done(_gthis);
+	};
+	request.send(null);
+};
+$hxClasses["kha.js.WebAudioSound"] = kha_js_WebAudioSound;
+kha_js_WebAudioSound.__name__ = "kha.js.WebAudioSound";
+kha_js_WebAudioSound.__super__ = kha_Sound;
+kha_js_WebAudioSound.prototype = $extend(kha_Sound.prototype,{
+	superUncompress: function(done) {
+		kha_Sound.prototype.uncompress.call(this,done);
+	}
+	,uncompress: function(done) {
+		var _gthis = this;
+		kha_audio2_Audio._context.decodeAudioData(this.compressedData.b.bufferValue,function(buffer) {
+			var ch0 = buffer.getChannelData(0);
+			var ch1 = buffer.numberOfChannels == 1 ? ch0 : buffer.getChannelData(1);
+			var len = ch0.length;
+			var this1 = new Float32Array(len * 2);
+			_gthis.uncompressedData = this1;
+			_gthis.length = buffer.duration;
+			_gthis.channels = buffer.numberOfChannels;
+			_gthis.sampleRate = Math.round(buffer.sampleRate);
+			var idx = 0;
+			var i = 0;
+			var lidx = len * 2;
+			var uncompressInner = null;
+			uncompressInner = function() {
+				var chk_len = idx + 11025;
+				var next_chk = chk_len > lidx ? lidx : chk_len;
+				while(idx < next_chk) {
+					_gthis.uncompressedData[idx] = ch0[i];
+					_gthis.uncompressedData[idx + 1] = ch1[i];
+					idx += 2;
+					i += 1;
+				}
+				if(idx < lidx) {
+					window.setTimeout(uncompressInner,0);
+				} else {
+					_gthis.compressedData = null;
+					done();
+				}
+			};
+			uncompressInner();
+		},function() {
+			_gthis.superUncompress(done);
+		});
+	}
+	,__class__: kha_js_WebAudioSound
 });
 var kha_js_graphics4_ConstantLocation = function(value,type) {
 	this.value = value;
@@ -23038,51 +25396,498 @@ kha_netsync_Session.prototype = {
 	}
 	,__class__: kha_netsync_Session
 };
-var states_GameState = function(room,fromRoom) {
+var states_GameDialog = function(dialogText,dialogTextGuide) {
 	com_framework_utils_State.call(this);
+	this.text = dialogText;
+	this.textGuide = dialogTextGuide;
+};
+$hxClasses["states.GameDialog"] = states_GameDialog;
+states_GameDialog.__name__ = "states.GameDialog";
+states_GameDialog.__super__ = com_framework_utils_State;
+states_GameDialog.prototype = $extend(com_framework_utils_State.prototype,{
+	load: function(resources) {
+		var atlas = new com_loading_basicResources_JoinAtlas(1024,1024);
+		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,14));
+		resources.add(atlas);
+	}
+	,init: function() {
+		var textBoxDisplay = new com_gEngine_helper_RectangleDisplay();
+		textBoxDisplay.x = 300;
+		textBoxDisplay.y = 100;
+		textBoxDisplay.setColor(255,222,173);
+		textBoxDisplay.scaleX = 700;
+		textBoxDisplay.scaleY = 500;
+		this.stage.addChild(textBoxDisplay);
+		var textDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		textDisplay.set_text(this.text);
+		textDisplay.x = textBoxDisplay.x + 50;
+		textDisplay.y = textBoxDisplay.y + 50;
+		textDisplay.set_color(-16777216);
+		this.stage.addChild(textDisplay);
+		var textGuideDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		textGuideDisplay.set_text(this.textGuide);
+		textGuideDisplay.x = textBoxDisplay.x + 50;
+		textGuideDisplay.y = textBoxDisplay.y + 300;
+		textGuideDisplay.set_color(-8388480);
+		this.stage.addChild(textGuideDisplay);
+		var closeDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		closeDisplay.set_text("Press escape to close");
+		closeDisplay.x = textBoxDisplay.x + 50;
+		closeDisplay.y = textBoxDisplay.y + 400;
+		closeDisplay.set_color(-65536);
+		this.stage.addChild(closeDisplay);
+		this.stage.set_color(0);
+	}
+	,update: function(dt) {
+		com_framework_utils_State.prototype.update.call(this,dt);
+		if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
+			this.close();
+		}
+	}
+	,close: function() {
+		var originalState = this.parentState;
+		originalState.closeDialog(this);
+	}
+	,__class__: states_GameDialog
+});
+var states_GameNpcDialog = function(dialogText) {
+	com_framework_utils_State.call(this);
+	this.text = dialogText;
+};
+$hxClasses["states.GameNpcDialog"] = states_GameNpcDialog;
+states_GameNpcDialog.__name__ = "states.GameNpcDialog";
+states_GameNpcDialog.__super__ = com_framework_utils_State;
+states_GameNpcDialog.prototype = $extend(com_framework_utils_State.prototype,{
+	load: function(resources) {
+		var atlas = new com_loading_basicResources_JoinAtlas(1024,1024);
+		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,14));
+		resources.add(atlas);
+	}
+	,init: function() {
+		var outerBoxDisplay = new com_gEngine_helper_RectangleDisplay();
+		outerBoxDisplay.x = 399;
+		outerBoxDisplay.y = 499;
+		outerBoxDisplay.setColor(0,0,0);
+		outerBoxDisplay.scaleX = 472;
+		outerBoxDisplay.scaleY = 102;
+		this.stage.addChild(outerBoxDisplay);
+		var textBoxDisplay = new com_gEngine_helper_RectangleDisplay();
+		textBoxDisplay.x = 400;
+		textBoxDisplay.y = 500;
+		textBoxDisplay.setColor(255,255,255);
+		textBoxDisplay.scaleX = 470;
+		textBoxDisplay.scaleY = 100;
+		this.stage.addChild(textBoxDisplay);
+		var textDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		textDisplay.set_text(this.text);
+		textDisplay.x = textBoxDisplay.x + 30;
+		textDisplay.y = textBoxDisplay.y + 5;
+		textDisplay.set_color(-16777216);
+		this.stage.addChild(textDisplay);
+		var closeDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		closeDisplay.set_text("Press escape to close");
+		closeDisplay.x = textBoxDisplay.x + 110;
+		closeDisplay.y = textBoxDisplay.y + 60;
+		closeDisplay.set_color(-65536);
+		this.stage.addChild(closeDisplay);
+		this.stage.set_color(0);
+	}
+	,update: function(dt) {
+		com_framework_utils_State.prototype.update.call(this,dt);
+		if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
+			this.close();
+		}
+	}
+	,close: function() {
+		var originalState = this.parentState;
+		originalState.closeDialog(this);
+	}
+	,__class__: states_GameNpcDialog
+});
+var states_GameOver = function(gameOverMessage) {
+	com_framework_utils_State.call(this);
+	this.message = gameOverMessage;
+};
+$hxClasses["states.GameOver"] = states_GameOver;
+states_GameOver.__name__ = "states.GameOver";
+states_GameOver.__super__ = com_framework_utils_State;
+states_GameOver.prototype = $extend(com_framework_utils_State.prototype,{
+	load: function(resources) {
+		var atlas = new com_loading_basicResources_JoinAtlas(1024,1024);
+		atlas.add(new com_loading_basicResources_ImageLoader("brokenHeart"));
+		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,30));
+		resources.add(atlas);
+	}
+	,init: function() {
+		var image = new com_gEngine_display_Sprite("brokenHeart");
+		image.x = com_gEngine_GEngine.virtualWidth * 0.5 - image.width() * 0.5;
+		image.y = 100;
+		this.stage.addChild(image);
+		var messageDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		messageDisplay.set_text(this.message);
+		messageDisplay.x = com_gEngine_GEngine.virtualWidth / 2 - messageDisplay.width() * 0.5;
+		messageDisplay.y = com_gEngine_GEngine.virtualHeight / 2;
+		messageDisplay.set_color(-1);
+		this.stage.addChild(messageDisplay);
+		var playAgainDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		playAgainDisplay.set_text("Press enter to play again");
+		playAgainDisplay.x = com_gEngine_GEngine.virtualWidth / 2 - playAgainDisplay.width() * 0.5;
+		playAgainDisplay.y = com_gEngine_GEngine.virtualHeight - 100;
+		playAgainDisplay.set_color(-16711936);
+		this.stage.addChild(playAgainDisplay);
+	}
+	,update: function(dt) {
+		com_framework_utils_State.prototype.update.call(this,dt);
+		if(com_framework_utils_Input.i.isKeyCodePressed(13)) {
+			this.changeState(new states_GameState());
+		}
+	}
+	,__class__: states_GameOver
+});
+var states_GameState = function(room,playerPosX,playerPosY) {
+	this.actualMap = "startingArea_tmx";
+	this.initialPosY = 448;
+	this.initialPosX = 128;
+	com_framework_utils_State.call(this);
+	if(room != null) {
+		this.initialPosX = playerPosX;
+		this.initialPosY = playerPosY;
+		this.actualMap = room;
+	}
 };
 $hxClasses["states.GameState"] = states_GameState;
 states_GameState.__name__ = "states.GameState";
 states_GameState.__super__ = com_framework_utils_State;
 states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 	load: function(resources) {
-		resources.add(new com_loading_basicResources_DataLoader(kha_Assets.blobs.finalRoom_tmxName));
-		var atlas = new com_loading_basicResources_JoinAtlas(2048,2048);
-		atlas.add(new com_loading_basicResources_SparrowLoader("samus","samus_xml"));
-		atlas.add(new com_loading_basicResources_TilesheetLoader("tile_dungeon_1",16,16,0));
-		atlas.add(new com_loading_basicResources_TilesheetLoader("tile_indoors_1",16,16,0));
-		atlas.add(new com_loading_basicResources_TilesheetLoader("tile_red_crystal",16,16,0));
-		atlas.add(new com_loading_basicResources_TilesheetLoader("tile_terrain_1",16,16,0));
+		resources.add(new com_loading_basicResources_DataLoader(this.actualMap));
+		var atlas = new com_loading_basicResources_JoinAtlas(4096,4096);
+		atlas.add(new com_loading_basicResources_TilesheetLoader("tile_terrain",16,16,0));
+		atlas.add(new com_loading_basicResources_TilesheetLoader("tile_indoors",16,16,0));
+		atlas.add(new com_loading_basicResources_ImageLoader("tile_crystal"));
+		atlas.add(new com_loading_basicResources_ImageLoader("book1nobackg"));
+		atlas.add(new com_loading_basicResources_ImageLoader("book2nobackg"));
+		atlas.add(new com_loading_basicResources_ImageLoader("book3nobackg"));
+		atlas.add(new com_loading_basicResources_ImageLoader("skeleton1nobackg"));
+		atlas.add(new com_loading_basicResources_ImageLoader("skeleton2nobackg"));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("playerLife",66,22,0,[new com_loading_basicResources_Sequence("fullLife",[0]),new com_loading_basicResources_Sequence("2Lives",[1]),new com_loading_basicResources_Sequence("1Life",[2])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("unlockableItems",144,48,0,[new com_loading_basicResources_Sequence("noItems",[0]),new com_loading_basicResources_Sequence("z",[1]),new com_loading_basicResources_Sequence("x",[2]),new com_loading_basicResources_Sequence("c",[3]),new com_loading_basicResources_Sequence("zx",[4]),new com_loading_basicResources_Sequence("zc",[5]),new com_loading_basicResources_Sequence("xc",[6]),new com_loading_basicResources_Sequence("zxc",[7])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("william",32,32,0,[new com_loading_basicResources_Sequence("idleFront",[0]),new com_loading_basicResources_Sequence("idleBack",[3]),new com_loading_basicResources_Sequence("idleSide",[6]),new com_loading_basicResources_Sequence("walkFront",[0,1,2]),new com_loading_basicResources_Sequence("walkBack",[3,4,5]),new com_loading_basicResources_Sequence("walkSide",[6,7,8]),new com_loading_basicResources_Sequence("damaged",[14,15]),new com_loading_basicResources_Sequence("talking",[16])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("darkrai",32,32,0,[new com_loading_basicResources_Sequence("walkBack",[0,1,2]),new com_loading_basicResources_Sequence("walkDiagonalBack",[3,4,5]),new com_loading_basicResources_Sequence("walkSide",[6,7,8]),new com_loading_basicResources_Sequence("walkDiagonalFront",[9,10,11]),new com_loading_basicResources_Sequence("walkFront",[12,13,14])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("golem",48,48,0,[new com_loading_basicResources_Sequence("walkBack",[0,2]),new com_loading_basicResources_Sequence("walkFront",[3,5]),new com_loading_basicResources_Sequence("idle",[6,7])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("joltik",32,32,0,[new com_loading_basicResources_Sequence("idleFront",[8]),new com_loading_basicResources_Sequence("idleBack",[2]),new com_loading_basicResources_Sequence("idleSide",[14]),new com_loading_basicResources_Sequence("walkBack",[0,1,2]),new com_loading_basicResources_Sequence("walkFront",[6,8,8,7,8,8]),new com_loading_basicResources_Sequence("walkSide",[14,12,14,13]),new com_loading_basicResources_Sequence("attackBack",[3,4]),new com_loading_basicResources_Sequence("attackFront",[9,10]),new com_loading_basicResources_Sequence("attackSide",[15,16]),new com_loading_basicResources_Sequence("damagedBack",[5]),new com_loading_basicResources_Sequence("damagedFront",[11]),new com_loading_basicResources_Sequence("damagedSide",[17])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("slash_attack",36,36,0,[new com_loading_basicResources_Sequence("attack",[0,1,2,3,4])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("boomerang",32,32,0,[new com_loading_basicResources_Sequence("attack",[0])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("song",12,188,0,[new com_loading_basicResources_Sequence("play",[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19])]));
 		atlas.add(new com_loading_basicResources_FontLoader("Kenney_Pixel",24));
 		resources.add(atlas);
+		resources.add(new com_loading_basicResources_SoundLoader("ambientalTheme",false));
+		resources.add(new com_loading_basicResources_SoundLoader("finalStageTheme",false));
+		resources.add(new com_loading_basicResources_SoundLoader("slashSoundEffect"));
+		resources.add(new com_loading_basicResources_SoundLoader("bagpipeSoundEffect"));
 	}
 	,init: function() {
 		var _gthis = this;
+		this.screenWidth = com_gEngine_GEngine.get_i().width;
+		this.screenHeight = com_gEngine_GEngine.get_i().height;
 		this.stageColor(0.5,.5,0.5);
-		this.dialogCollision = new com_collision_platformer_CollisionGroup();
+		this.doorsCollision = new com_collision_platformer_CollisionGroup();
+		this.teleportersCollision = new com_collision_platformer_CollisionGroup();
+		this.spiderCollision = new com_collision_platformer_CollisionGroup();
+		this.spectreCollision = new com_collision_platformer_CollisionGroup();
+		this.golemUpCollision = new com_collision_platformer_CollisionGroup();
+		this.golemDownCollision = new com_collision_platformer_CollisionGroup();
+		this.interactionCollision = new com_collision_platformer_CollisionGroup();
+		this.spawnCollision = new com_collision_platformer_CollisionGroup();
+		this.booksCollision = new com_collision_platformer_CollisionGroup();
+		this.npcsCollision = new com_collision_platformer_CollisionGroup();
+		this.crystalCollision = new com_collision_platformer_CollisionGroup();
 		this.simulationLayer = new com_gEngine_display_Layer();
 		this.stage.addChild(this.simulationLayer);
-		this.worldMap = new com_collision_platformer_Tilemap("finalRoom_tmx",1);
+		this.worldMap = new com_collision_platformer_Tilemap(this.actualMap,1);
 		this.worldMap.init(function(layerTilemap,tileLayer) {
-			if(!tileLayer.properties.exists("noCollision")) {
+			_gthis.stage.cameras[0].scale = 2.5;
+			if(tileLayer.properties.getString("tilesheet") == "indoors") {
+				_gthis.simulationLayer.addChild(layerTilemap.createDisplay(tileLayer,new com_gEngine_display_Sprite("tile_indoors")));
+			} else {
+				_gthis.simulationLayer.addChild(layerTilemap.createDisplay(tileLayer,new com_gEngine_display_Sprite("tile_terrain")));
+			}
+			if(tileLayer.properties.exists("cannotPass")) {
 				layerTilemap.createCollisions(tileLayer);
 			}
-			_gthis.simulationLayer.addChild(layerTilemap.createDisplay(tileLayer,new com_gEngine_display_Sprite("tile_dungeon_1")));
-			_gthis.simulationLayer.addChild(layerTilemap.createDisplay(tileLayer,new com_gEngine_display_Sprite("tile_indoors_1")));
-			_gthis.simulationLayer.addChild(layerTilemap.createDisplay(tileLayer,new com_gEngine_display_Sprite("tile_red_crystal")));
-			_gthis.simulationLayer.addChild(layerTilemap.createDisplay(tileLayer,new com_gEngine_display_Sprite("tile_terrain_1")));
 		},$bind(this,this.parseMapObjects));
-		this.stage.cameras[0].limits(0,0,this.worldMap.widthIntTiles * 32,this.worldMap.heightInTiles * 32);
-		this.william = new gameObjects_Player(250,200,this.simulationLayer);
+		this.stage.cameras[0].limits(0,0,this.worldMap.widthIntTiles * 16,this.worldMap.heightInTiles * 16);
+		this.william = new gameObjects_William(this.initialPosX,this.initialPosY,this.simulationLayer);
 		this.addChild(this.william);
+		GlobalGameData.player = this.william;
+		GlobalGameData.simulationLayer = this.simulationLayer;
+		GlobalGameData.camera = this.stage.cameras[0];
+		this.hudLayer = new com_gEngine_display_StaticLayer();
+		this.stage.addChild(this.hudLayer);
+		this.lifeDisplay = new com_gEngine_display_Sprite("playerLife");
+		this.weaponDisplay = new com_gEngine_display_Sprite("unlockableItems");
+		this.hudLayer.addChild(this.lifeDisplay);
+		this.hudLayer.addChild(this.weaponDisplay);
+		this.lifeDisplay.x = 20;
+		this.lifeDisplay.y = 30;
+		this.lifeDisplay.scaleX = this.lifeDisplay.scaleY = 2;
+		this.weaponDisplay.x = 550;
+		this.weaponDisplay.y = 620;
+		this.weaponDisplay.scaleX = this.weaponDisplay.scaleY = 1.5;
 	}
 	,parseMapObjects: function(layerTilemap,object) {
+		switch(object.objectType._hx_index) {
+		case 0:
+			if(object.properties.exists("isDoor")) {
+				var door = new cinematic_Door(object.x,object.y,object.width,object.height,object.properties.getString("goToMap"),Std.parseInt(object.properties.getString("goToX")),Std.parseInt(object.properties.getString("goToY")));
+				this.doorsCollision.add(door.collider);
+				this.addChild(door);
+			}
+			if(object.properties.exists("isTeleporter")) {
+				var teleporter = new cinematic_Door(object.x,object.y,object.width,object.height,null,Std.parseInt(object.properties.getString("goToX")),Std.parseInt(object.properties.getString("goToY")));
+				this.teleportersCollision.add(teleporter.collider);
+				this.addChild(teleporter);
+			}
+			if(object.properties.exists("isBook")) {
+				var dialog = new cinematic_Dialog(object.x,object.y,object.width,object.height,object.properties.getString("text"),object.properties.getString("textGuide"));
+				this.booksCollision.add(dialog.collider);
+				this.addChild(dialog);
+			}
+			if(object.properties.exists("isNPC")) {
+				var dialog1 = new cinematic_Dialog(object.x,object.y,object.width,object.height,object.properties.getString("text"),null,object.properties.getString("hasItem"));
+				this.npcsCollision.add(dialog1.collider);
+				this.addChild(dialog1);
+			}
+			if(object.properties.exists("isCrystal")) {
+				var dialog2 = new cinematic_FinalDialog(object.x,object.y,object.width,object.height,object.properties.getString("text"),object.properties.getString("text2"),object.properties.getString("text3"),object.properties.getString("text4"));
+				this.crystalCollision.add(dialog2.collider);
+				this.addChild(dialog2);
+			}
+			if(object.properties.exists("activatesSpawn")) {
+				var trap = new cinematic_Trap(object.x,object.y,object.width,object.height);
+				this.interactionCollision.add(trap.collider);
+				this.addChild(trap);
+			}
+			if(object.properties.exists("isSpawn")) {
+				if(object.properties.getString("enemyType") == "spectre") {
+					var spawn = new cinematic_Spawn(object.x,object.y,object.width,object.height,"spectre");
+					this.spawnCollision.add(spawn.collider);
+					this.addChild(spawn);
+					spawn.activate(this);
+				} else {
+					var spawn1 = new cinematic_Spawn(object.x,object.y,object.width,object.height,object.properties.getString("enemyType"),Std.parseInt(object.properties.getString("dirY")));
+					this.spawnCollision.add(spawn1.collider);
+					this.addChild(spawn1);
+				}
+			}
+			break;
+		case 1:
+			var spriteName = object.properties.getString("sprite");
+			var sprite = new com_gEngine_display_Sprite(spriteName);
+			sprite.set_smooth(false);
+			sprite.x = object.x;
+			sprite.y = object.y - sprite.height();
+			sprite.pivotY = sprite.height();
+			this.simulationLayer.addChild(sprite);
+			break;
+		case 2:
+			if(object.properties.exists("music")) {
+				com_soundLib_SoundManager.playMusic(object.properties.getString("music"),true);
+				com_soundLib_SoundManager.musicVolume(0.4);
+			}
+			break;
+		default:
+		}
 	}
 	,update: function(dt) {
 		com_framework_utils_State.prototype.update.call(this,dt);
-		this.stage.cameras[0].scale = 2;
-		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.worldMap.collision);
+		this.simulationLayer.sort(com_gEngine_display_Layer.sortYCompare);
+		com_collision_platformer_CollisionEngine.collide(this.spiderCollision,this.worldMap.collision);
+		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.doorsCollision,$bind(this,this.playerVsDoor));
+		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.teleportersCollision,$bind(this,this.playerVsTeleporter));
+		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.spiderCollision,$bind(this,this.playerVsSpider));
+		com_collision_platformer_CollisionEngine.overlap(this.william.weapon.slashCollisions,this.spiderCollision,$bind(this,this.attackVsSpider));
+		com_collision_platformer_CollisionEngine.overlap(this.william.rangedWeapon.swapparangCollisions,this.golemUpCollision,$bind(this,this.boomerangVsGolem));
+		com_collision_platformer_CollisionEngine.overlap(this.william.rangedWeapon.swapparangCollisions,this.golemDownCollision,$bind(this,this.boomerangVsGolem));
+		com_collision_platformer_CollisionEngine.collide(this.william.rangedWeapon.swapparangCollisions,this.worldMap.collision,$bind(this,this.boomerangVsWalls));
+		com_collision_platformer_CollisionEngine.overlap(this.william.instrument.instrumentCollisions,this.spiderCollision,$bind(this,this.stunSpiders));
+		com_collision_platformer_CollisionEngine.overlap(this.william.instrument.instrumentCollisions,this.spectreCollision,$bind(this,this.stunSpectre));
+		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.golemUpCollision,$bind(this,this.williamVsGolem));
+		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.golemDownCollision,$bind(this,this.williamVsGolem));
+		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.interactionCollision,$bind(this,this.activateSpawns));
+		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.spectreCollision,$bind(this,this.playerVsSpectre));
+		com_collision_platformer_CollisionEngine.collide(this.golemUpCollision,this.worldMap.collision,$bind(this,this.golemVsWalls));
+		com_collision_platformer_CollisionEngine.collide(this.golemDownCollision,this.worldMap.collision,$bind(this,this.golemVsWalls));
+		com_collision_platformer_CollisionEngine.collide(this.golemUpCollision,this.golemDownCollision,$bind(this,this.golemVsGolem));
+		com_collision_platformer_CollisionEngine.overlap(this.booksCollision,this.william.collision,$bind(this,this.williamVsBook));
+		com_collision_platformer_CollisionEngine.overlap(this.npcsCollision,this.william.collision,$bind(this,this.williamVsNpc));
+		com_collision_platformer_CollisionEngine.overlap(this.crystalCollision,this.william.collision,$bind(this,this.williamVsCrystal));
 		this.stage.cameras[0].setTarget(this.william.collision.x,this.william.collision.y);
+		this.showCurrentLives();
+		this.showCurrentItems();
+	}
+	,williamVsCrystal: function(crystalCollision,playerCollision) {
+		var dialog = crystalCollision.userData;
+		if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+			this.openCrystalDialog(dialog.text,dialog.text2,dialog.text3,dialog.text4);
+		}
+	}
+	,williamVsBook: function(booksCollision,playerCollision) {
+		var dialog = booksCollision.userData;
+		if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+			this.openBookDialog(dialog.text,dialog.textGuide);
+		}
+	}
+	,williamVsNpc: function(npcsCollision,playerCollision) {
+		var dialog = npcsCollision.userData;
+		if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+			this.openNpcDialog(dialog.text);
+			this.unlockItem(dialog.weapon);
+		}
+	}
+	,activateSpawns: function(interactionCollision,playerCollision) {
+		var trap = interactionCollision.userData;
+		if(!trap.activated) {
+			trap.activate();
+			var _g = 0;
+			var _g1 = this.spawnCollision.colliders;
+			while(_g < _g1.length) {
+				var spawn = _g1[_g];
+				++_g;
+				var spawnpoint = spawn.userData;
+				spawnpoint.activate(this);
+			}
+		}
+	}
+	,williamVsGolem: function(playerCollision,golemCollision) {
+		this.william.takeDamage();
+		if(GlobalGameData.lives == 0) {
+			GlobalGameData.destroy();
+			this.changeState(new states_GameOver("Too bad... you won't be seeing your brother anytime soon"));
+		}
+	}
+	,golemVsWalls: function(mapCollision,golemCollision) {
+		var golem = golemCollision.userData;
+		golem.invertDirection();
+	}
+	,golemVsGolem: function(golemCollision1,golemCollision2) {
+		var golem1 = golemCollision1.userData;
+		var golem2 = golemCollision2.userData;
+		golem1.invertDirection();
+		golem2.invertDirection();
+	}
+	,boomerangVsWalls: function(wallCollision,boomerangCollision) {
+		var boomerang = boomerangCollision.userData;
+		boomerang.die();
+	}
+	,boomerangVsGolem: function(boomerangCollision,golemCollision) {
+		var boomerang = boomerangCollision.userData;
+		boomerang.die();
+		var old_x = this.william.collision.x;
+		var old_y = this.william.collision.y;
+		var golem = golemCollision.userData;
+		var new_x = golem.collision.x;
+		var new_y = golem.collision.y;
+		golem.dissapear();
+		this.william.collision.x = new_x;
+		this.william.collision.y = new_y;
+		golem = new gameObjects_Golem(this.simulationLayer,this.golemDownCollision,old_x,old_y,0);
+		this.addChild(golem);
+	}
+	,playerVsDoor: function(doorCollision,playerCollision) {
+		var door = doorCollision.userData;
+		door.changeRoom(this);
+	}
+	,playerVsTeleporter: function(teleporterCollision,playerCollision) {
+		var teleporter = teleporterCollision.userData;
+		var player = playerCollision.userData;
+		teleporter.teleportPlayer(player);
+	}
+	,playerVsSpider: function(spiderCollision,playerCollision) {
+		var spider = spiderCollision.userData;
+		var player = playerCollision.userData;
+		spider.attack();
+		player.takeDamage();
+		if(GlobalGameData.lives == 0) {
+			GlobalGameData.destroy();
+			this.changeState(new states_GameOver("Too bad... you won't be seeing your brother anytime soon"));
+		}
+	}
+	,playerVsSpectre: function(spectreCollision,playerCollision) {
+		GlobalGameData.destroy();
+		this.changeState(new states_GameOver("Don't try getting close to a spectre. They will kill you instantly"));
+	}
+	,attackVsSpider: function(attackCollision,spiderCollision) {
+		var spider = spiderCollision.userData;
+		spider.takeDamage();
+	}
+	,stunSpectre: function(attackCollision,enemyCollision) {
+		var enemy = enemyCollision.userData;
+		enemy.stun();
+	}
+	,stunSpiders: function(attackCollision,enemyCollision) {
+		var enemy = enemyCollision.userData;
+		enemy.stun();
+	}
+	,showCurrentLives: function() {
+		if(GlobalGameData.lives == 3) {
+			this.lifeDisplay.timeline.playAnimation("fullLife");
+		} else if(GlobalGameData.lives == 2) {
+			this.lifeDisplay.timeline.playAnimation("2Lives");
+		} else {
+			this.lifeDisplay.timeline.playAnimation("1Life");
+		}
+	}
+	,showCurrentItems: function() {
+		if((!GlobalGameData.unlockedSwapparang || GlobalGameData.swapparangCoolDown > 0) && GlobalGameData.unlockedBagpipe && GlobalGameData.bagpipeCoolDown <= 0) {
+			this.weaponDisplay.timeline.playAnimation("zx");
+		} else if(GlobalGameData.unlockedSwapparang && (!GlobalGameData.unlockedBagpipe || GlobalGameData.bagpipeCoolDown > 0) && GlobalGameData.swapparangCoolDown <= 0) {
+			this.weaponDisplay.timeline.playAnimation("zc");
+		} else if(GlobalGameData.unlockedSwapparang && GlobalGameData.unlockedBagpipe && GlobalGameData.bagpipeCoolDown <= 0 && GlobalGameData.swapparangCoolDown <= 0) {
+			this.weaponDisplay.timeline.playAnimation("zxc");
+		} else {
+			this.weaponDisplay.timeline.playAnimation("z");
+		}
+	}
+	,openBookDialog: function(text,textGuide) {
+		var gameDialog = new states_GameDialog(text,textGuide);
+		this.initSubState(gameDialog);
+		this.addSubState(gameDialog);
+		this.set_timeScale(0);
+	}
+	,openNpcDialog: function(text) {
+		var gameDialog = new states_GameNpcDialog(text);
+		this.initSubState(gameDialog);
+		this.addSubState(gameDialog);
+		this.set_timeScale(0);
+	}
+	,openCrystalDialog: function(text,text2,text3,text4) {
+		if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
+			var gameDialog2 = new states_GameNpcDialog(text2);
+			this.initSubState(gameDialog2);
+			this.addSubState(gameDialog2);
+			if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
+				var gameDialog3 = new states_GameNpcDialog(text3);
+				this.initSubState(gameDialog3);
+				this.addSubState(gameDialog3);
+				if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
+					var gameDialog4 = new states_GameNpcDialog(text4);
+					this.initSubState(gameDialog4);
+					this.addSubState(gameDialog4);
+				}
+			}
+		}
+	}
+	,closeDialog: function(subState) {
+		this.removeSubState(subState);
+		this.set_timeScale(1);
+	}
+	,unlockItem: function(name) {
+		if(name == "bagpipe") {
+			GlobalGameData.unlockedBagpipe = true;
+		} else if(name == "swapparang") {
+			GlobalGameData.unlockedSwapparang = true;
+		}
 	}
 	,draw: function(framebuffer) {
 		com_framework_utils_State.prototype.draw.call(this,framebuffer);
@@ -23116,6 +25921,12 @@ Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function()
 	return String(this.val);
 }});
 js_Boot.__toStr = ({ }).toString;
+GlobalGameData.lives = 3;
+GlobalGameData.unlockedSwapparang = false;
+GlobalGameData.unlockedBagpipe = false;
+GlobalGameData.stunDuration = 2;
+GlobalGameData.bagpipeCoolDown = 0;
+GlobalGameData.swapparangCoolDown = 0;
 Xml.Element = 0;
 Xml.PCData = 1;
 Xml.CData = 2;
@@ -23129,10 +25940,13 @@ com_collision_platformer_CollisionEngine.colliders = [];
 com_framework_utils_Perlin.PERMUTATIONS = [151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];
 com_gEngine_GEngine.drawCount = 0;
 com_gEngine_GEngine.extraInfo = "";
+com_soundLib_SoundManager.soundMuted = false;
+com_soundLib_SoundManager.musicMuted = false;
 haxe_Unserializer.DEFAULT_RESOLVER = new haxe__$Unserializer_DefaultResolver();
 haxe_Unserializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
 haxe_crypto_Base64.CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 haxe_crypto_Base64.BYTES = haxe_io_Bytes.ofString(haxe_crypto_Base64.CHARS);
+haxe_io_FPHelper.helper = new DataView(new ArrayBuffer(8));
 haxe_xml_Parser.escapes = (function($this) {
 	var $r;
 	var h = new haxe_ds_StringMap();
@@ -23170,6 +25984,7 @@ haxe_zip_InflateImpl.DIST_EXTRA_BITS_TBL = [0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,
 haxe_zip_InflateImpl.DIST_BASE_VAL_TBL = [1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
 haxe_zip_InflateImpl.CODE_LENGTHS_POS = [16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
 kha_Assets.images = new kha__$Assets_ImageList();
+kha_Assets.sounds = new kha__$Assets_SoundList();
 kha_Assets.blobs = new kha__$Assets_BlobList();
 kha_Assets.fonts = new kha__$Assets_FontList();
 kha_Display.instance = new kha_Display();

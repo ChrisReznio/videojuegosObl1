@@ -31,12 +31,12 @@
 			"types": []
 		},
 		{
-			"name": "Kenney_Thick",
+			"name": "Kenney_Pixel",
 			"files": [
-				"Kenney Thick.ttf"
+				"Kenney Pixel.ttf"
 			],
 			"file_sizes": [
-				9448
+				28276
 			],
 			"type": "font"
 		},
@@ -107,6 +107,26 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "ambientalTheme",
+			"files": [
+				"ambientalTheme.ogg"
+			],
+			"file_sizes": [
+				1575896
+			],
+			"type": "sound"
+		},
+		{
+			"name": "bagpipeSoundEffect",
+			"files": [
+				"bagpipeSoundEffect.ogg"
+			],
+			"file_sizes": [
+				37232
+			],
+			"type": "sound"
 		},
 		{
 			"name": "blurFragmentShader_frag",
@@ -197,6 +217,78 @@
 			"types": []
 		},
 		{
+			"name": "book1nobackg",
+			"files": [
+				"book1nobackg.png"
+			],
+			"file_sizes": [
+				438
+			],
+			"type": "image",
+			"original_width": 17,
+			"original_height": 14
+		},
+		{
+			"name": "book2nobackg",
+			"files": [
+				"book2nobackg.png"
+			],
+			"file_sizes": [
+				455
+			],
+			"type": "image",
+			"original_width": 17,
+			"original_height": 14
+		},
+		{
+			"name": "book3nobackg",
+			"files": [
+				"book3nobackg.png"
+			],
+			"file_sizes": [
+				298
+			],
+			"type": "image",
+			"original_width": 13,
+			"original_height": 16
+		},
+		{
+			"name": "boomerang",
+			"files": [
+				"boomerang.png"
+			],
+			"file_sizes": [
+				463
+			],
+			"type": "image",
+			"original_width": 32,
+			"original_height": 32
+		},
+		{
+			"name": "brokenHeart",
+			"files": [
+				"brokenHeart.png"
+			],
+			"file_sizes": [
+				876
+			],
+			"type": "image",
+			"original_width": 212,
+			"original_height": 192
+		},
+		{
+			"name": "darkrai",
+			"files": [
+				"darkrai.png"
+			],
+			"file_sizes": [
+				4989
+			],
+			"type": "image",
+			"original_width": 96,
+			"original_height": 160
+		},
+		{
 			"name": "filmGrain_frag",
 			"files": [
 				"filmGrain.frag.essl",
@@ -231,14 +323,34 @@
 			"types": []
 		},
 		{
-			"name": "finalRoom_tmx",
+			"name": "finalArea_tmx",
 			"files": [
-				"finalRoom.tmx"
+				"finalArea.tmx"
 			],
 			"file_sizes": [
-				15353
+				12720
 			],
 			"type": "blob"
+		},
+		{
+			"name": "finalBattleTheme",
+			"files": [
+				"finalBattleTheme.ogg"
+			],
+			"file_sizes": [
+				1543288
+			],
+			"type": "sound"
+		},
+		{
+			"name": "finalStageTheme",
+			"files": [
+				"finalStageTheme.ogg"
+			],
+			"file_sizes": [
+				2420064
+			],
+			"type": "sound"
 		},
 		{
 			"name": "fov_frag",
@@ -309,16 +421,16 @@
 			"types": []
 		},
 		{
-			"name": "gameOver",
+			"name": "golem",
 			"files": [
-				"gameOver.png"
+				"golem.png"
 			],
 			"file_sizes": [
-				17088
+				5492
 			],
 			"type": "image",
-			"original_width": 231,
-			"original_height": 244
+			"original_width": 144,
+			"original_height": 144
 		},
 		{
 			"name": "hBlurVertexShader_vert",
@@ -411,6 +523,18 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "joltik",
+			"files": [
+				"joltik.png"
+			],
+			"file_sizes": [
+				5682
+			],
+			"type": "image",
+			"original_width": 192,
+			"original_height": 96
 		},
 		{
 			"name": "mainfont",
@@ -743,6 +867,36 @@
 				}
 			],
 			"types": []
+		},
+		{
+			"name": "northeastAreaRoom_tmx",
+			"files": [
+				"northeastAreaRoom.tmx"
+			],
+			"file_sizes": [
+				11648
+			],
+			"type": "blob"
+		},
+		{
+			"name": "northeastArea_tmx",
+			"files": [
+				"northeastArea.tmx"
+			],
+			"file_sizes": [
+				13610
+			],
+			"type": "blob"
+		},
+		{
+			"name": "objects_tsx",
+			"files": [
+				"objects.tsx"
+			],
+			"file_sizes": [
+				760
+			],
+			"type": "blob"
 		},
 		{
 			"name": "outline_frag",
@@ -1190,6 +1344,18 @@
 			]
 		},
 		{
+			"name": "playerLife",
+			"files": [
+				"playerLife.png"
+			],
+			"file_sizes": [
+				670
+			],
+			"type": "image",
+			"original_width": 66,
+			"original_height": 66
+		},
+		{
 			"name": "renderAreaTint_frag",
 			"files": [
 				"renderAreaTint.frag.essl",
@@ -1252,28 +1418,6 @@
 				}
 			],
 			"types": []
-		},
-		{
-			"name": "samus",
-			"files": [
-				"samus.png"
-			],
-			"file_sizes": [
-				9871
-			],
-			"type": "image",
-			"original_width": 219,
-			"original_height": 85
-		},
-		{
-			"name": "samus_xml",
-			"files": [
-				"samus.xml"
-			],
-			"file_sizes": [
-				865
-			],
-			"type": "blob"
 		},
 		{
 			"name": "shInverseMask_frag",
@@ -1934,44 +2078,140 @@
 			]
 		},
 		{
-			"name": "tile_dungeon_1_tsx",
+			"name": "skeleton1nobackg",
 			"files": [
-				"tile_dungeon_1.tsx"
+				"skeleton1nobackg.png"
 			],
 			"file_sizes": [
-				264
+				863
+			],
+			"type": "image",
+			"original_width": 40,
+			"original_height": 35
+		},
+		{
+			"name": "skeleton2nobackg",
+			"files": [
+				"skeleton2nobackg.png"
+			],
+			"file_sizes": [
+				759
+			],
+			"type": "image",
+			"original_width": 35,
+			"original_height": 38
+		},
+		{
+			"name": "slashSoundEffect",
+			"files": [
+				"slashSoundEffect.ogg"
+			],
+			"file_sizes": [
+				12588
+			],
+			"type": "sound"
+		},
+		{
+			"name": "slash_attack",
+			"files": [
+				"slash_attack.png"
+			],
+			"file_sizes": [
+				1170
+			],
+			"type": "image",
+			"original_width": 180,
+			"original_height": 36
+		},
+		{
+			"name": "song",
+			"files": [
+				"song.png"
+			],
+			"file_sizes": [
+				3113
+			],
+			"type": "image",
+			"original_width": 240,
+			"original_height": 188
+		},
+		{
+			"name": "southwestArea_tmx",
+			"files": [
+				"southwestArea.tmx"
+			],
+			"file_sizes": [
+				14489
 			],
 			"type": "blob"
 		},
 		{
-			"name": "tile_indoors_1_tsx",
+			"name": "startingAreaRoom_tmx",
 			"files": [
-				"tile_indoors_1.tsx"
+				"startingAreaRoom.tmx"
 			],
 			"file_sizes": [
-				291
+				11725
 			],
 			"type": "blob"
 		},
 		{
-			"name": "tile_red_crystal_tsx",
+			"name": "startingArea_tmx",
 			"files": [
-				"tile_red_crystal.tsx"
+				"startingArea.tmx"
 			],
 			"file_sizes": [
-				279
+				14569
 			],
 			"type": "blob"
 		},
 		{
-			"name": "tile_terrain_1_tsx",
+			"name": "tile_crystal",
 			"files": [
-				"tile_terrain_1.tsx"
+				"tile_crystal.png"
 			],
 			"file_sizes": [
-				240
+				1794
 			],
-			"type": "blob"
+			"type": "image",
+			"original_width": 160,
+			"original_height": 160
+		},
+		{
+			"name": "tile_indoors",
+			"files": [
+				"tile_indoors.png"
+			],
+			"file_sizes": [
+				18508
+			],
+			"type": "image",
+			"original_width": 176,
+			"original_height": 192
+		},
+		{
+			"name": "tile_terrain",
+			"files": [
+				"tile_terrain.png"
+			],
+			"file_sizes": [
+				336339
+			],
+			"type": "image",
+			"original_width": 1024,
+			"original_height": 1024
+		},
+		{
+			"name": "unlockableItems",
+			"files": [
+				"unlockableItems.png"
+			],
+			"file_sizes": [
+				13973
+			],
+			"type": "image",
+			"original_width": 144,
+			"original_height": 384
 		},
 		{
 			"name": "vBlurVertexShader_vert",
@@ -2060,6 +2300,18 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "william",
+			"files": [
+				"william.png"
+			],
+			"file_sizes": [
+				5533
+			],
+			"type": "image",
+			"original_width": 96,
+			"original_height": 192
 		}
 	]
 }

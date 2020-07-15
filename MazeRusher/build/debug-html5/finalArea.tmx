@@ -91,8 +91,7 @@
     <property name="text2">-You demand to have your friend 
  Gwegwein back</property>
     <property name="text3" value="-Will? is that you?"/>
-    <property name="text4">-Welcome back Gwegwein...  
-  You are home.</property>
+    <property name="text4" value="-Welcome back Gwegwein...  You are home."/>
    </properties>
   </object>
   <object id="5" gid="4102" x="177.084" y="272.328" width="160" height="160">

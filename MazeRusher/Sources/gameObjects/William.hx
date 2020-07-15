@@ -35,8 +35,8 @@ class William extends Entity {
 		layer.addChild(display);
 
 		collision = new CollisionBox();
-		collision.width = display.width()*0.4;
-		collision.height = display.height()*0.5;
+		collision.width = display.width()*0.5;
+		collision.height = display.height()*0.6;
 		display.pivotX = display.width()/2;
 		
 		display.scaleX = display.scaleY = 1;

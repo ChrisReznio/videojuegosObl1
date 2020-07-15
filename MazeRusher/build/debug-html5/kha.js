@@ -9686,9 +9686,9 @@ var gameObjects_William = function(x,y,layer) {
 	layer.addChild(this.display);
 	this.collision = new com_collision_platformer_CollisionBox();
 	var tmp = this.display.width();
-	this.collision.width = tmp * 0.4;
+	this.collision.width = tmp * 0.5;
 	var tmp1 = this.display.height();
-	this.collision.height = tmp1 * 0.5;
+	this.collision.height = tmp1 * 0.6;
 	var tmp2 = this.display.width();
 	this.display.pivotX = tmp2 / 2;
 	this.display.scaleX = this.display.scaleY = 1;
@@ -12553,7 +12553,7 @@ var kha__$Assets_BlobList = function() {
 	this.northeastArea_tmx = null;
 	this.northeastAreaRoom_tmxDescription = { name : "northeastAreaRoom_tmx", file_sizes : [11644], files : ["northeastAreaRoom.tmx"], type : "blob"};
 	this.northeastAreaRoom_tmx = null;
-	this.finalArea_tmxDescription = { name : "finalArea_tmx", file_sizes : [15062], files : ["finalArea.tmx"], type : "blob"};
+	this.finalArea_tmxDescription = { name : "finalArea_tmx", file_sizes : [15057], files : ["finalArea.tmx"], type : "blob"};
 	this.finalArea_tmx = null;
 };
 $hxClasses["kha._Assets.BlobList"] = kha__$Assets_BlobList;

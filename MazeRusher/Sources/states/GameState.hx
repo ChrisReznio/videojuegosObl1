@@ -84,6 +84,11 @@ class GameState extends State {
 	var screenHeight:Float;
 	var playerHeight:Float = 32;
 
+	public var isReading:Bool = false;
+	var timeSinceRead:Float = 0;
+	var readCooldown:Float = 0.2;
+	var hasRead:Bool = false;
+
 	public function new(room:String = null, playerPosX:Float = null, playerPosY:Float = null) {
 		super();
 		if(room != null){
@@ -302,10 +307,10 @@ class GameState extends State {
 
 	override function update(dt:Float) {
 		super.update(dt);
-	
+
 		simulationLayer.sort(Layer.sortYCompare);
-		//CollisionEngine.collide(william.collision,worldMap.collision);
-		CollisionEngine.collide(spiderCollision,worldMap.collision);
+		// CollisionEngine.collide(william.collision,worldMap.collision);
+		CollisionEngine.collide(spiderCollision, worldMap.collision);
 		CollisionEngine.overlap(william.collision, doorsCollision, playerVsDoor);
 		CollisionEngine.overlap(william.collision, teleportersCollision, playerVsTeleporter);
 		CollisionEngine.collide(william.collision, spiderCollision, playerVsSpider);
@@ -322,34 +327,50 @@ class GameState extends State {
 		CollisionEngine.collide(golemUpCollision, worldMap.collision, golemVsWalls);
 		CollisionEngine.collide(golemDownCollision, worldMap.collision, golemVsWalls);
 		CollisionEngine.collide(golemUpCollision, golemDownCollision, golemVsGolem);
-		CollisionEngine.overlap(booksCollision, william.collision, williamVsBook);
-		CollisionEngine.overlap(npcsCollision, william.collision, williamVsNpc);
-		CollisionEngine.overlap(crystalCollision, william.collision, williamVsCrystal);
 
+		if(!isReading && !hasRead){
+			CollisionEngine.overlap(booksCollision, william.collision, williamVsBook);
+			CollisionEngine.overlap(npcsCollision, william.collision, williamVsNpc);
+			CollisionEngine.overlap(crystalCollision, william.collision, williamVsCrystal);
+		}
+		if(timeSinceRead >= readCooldown){
+			hasRead = false;
+			timeSinceRead = 0;
+		}
+		if(hasRead){
+			timeSinceRead+=dt;
+		}
 		stage.defaultCamera().setTarget(william.collision.x, william.collision.y);
 
 		showCurrentLives();
 		showCurrentItems();
 	}
-	function williamVsCrystal(crystalCollision:ICollider, playerCollision:ICollider){
-		var dialog:FinalDialog = cast crystalCollision.userData;
-		if (Input.i.isKeyCodePressed(KeyCode.Space)){
-			openCrystalDialog(dialog.text, dialog.text2, dialog.text3, dialog.text4);
+
+	function williamVsCrystal(crystalCollision:ICollider, playerCollision:ICollider) {
+		if (!isReading) {
+			var dialog:FinalDialog = cast crystalCollision.userData;
+			if (Input.i.isKeyCodePressed(KeyCode.Space)) {
+				openCrystalDialog(dialog.text, dialog.text2);
+			}
 		}
 	}
 	
 	function williamVsBook(booksCollision:ICollider, playerCollision:ICollider){
-		var dialog:Dialog = cast booksCollision.userData;
-		if (Input.i.isKeyCodePressed(KeyCode.Space)){
-			openBookDialog(dialog.text, dialog.textGuide);
+		if (!isReading) {
+			var dialog:Dialog = cast booksCollision.userData;
+			if (Input.i.isKeyCodePressed(KeyCode.Space)) {
+				openBookDialog(dialog.text, dialog.textGuide);
+			}
 		}
 	}
 
-	function williamVsNpc(npcsCollision:ICollider, playerCollision:ICollider){
-		var dialog:Dialog = cast npcsCollision.userData;
-		if (Input.i.isKeyCodePressed(KeyCode.Space)){
-			openNpcDialog(dialog.text);
-			unlockItem(dialog.weapon);
+	function williamVsNpc(npcsCollision:ICollider, playerCollision:ICollider) {
+		if (!isReading) {
+			var dialog:Dialog = cast npcsCollision.userData;
+			if (Input.i.isKeyCodePressed(KeyCode.Space)) {
+				openNpcDialog(dialog.text);
+				unlockItem(dialog.weapon);
+			}
 		}
 	}
 
@@ -466,38 +487,42 @@ class GameState extends State {
 		}
 		else if(GGD.unlockedSwapparang && (!GGD.unlockedBagpipe || GGD.bagpipeCoolDown > 0) && GGD.swapparangCoolDown <= 0){
 			weaponDisplay.timeline.playAnimation("zc");
-		}
-		else if(GGD.unlockedSwapparang && GGD.unlockedBagpipe && GGD.bagpipeCoolDown <= 0 && GGD.swapparangCoolDown <= 0){
+		} else if (GGD.unlockedSwapparang && GGD.unlockedBagpipe && GGD.bagpipeCoolDown <= 0 && GGD.swapparangCoolDown <= 0) {
 			weaponDisplay.timeline.playAnimation("zxc");
-		}
-		else{
+		} else {
 			weaponDisplay.timeline.playAnimation("z");
 		}
 	}
-	function openBookDialog(text:String, textGuide:String){
+
+	function openBookDialog(text:String, textGuide:String) {
+		isReading = true;
 		var gameDialog = new GameDialogBook(text, textGuide);
 		initSubState(gameDialog);
 		addSubState(gameDialog);
-		timeScale=0;
+		timeScale = 0;
 	}
 
-	function openNpcDialog(text:String){
+	function openNpcDialog(text:String) {
+		isReading = true;
 		var gameDialog = new GameDialogNpc(text);
 		initSubState(gameDialog);
 		addSubState(gameDialog);
-		timeScale=0;
+		timeScale = 0;
 	}
 
-	function openCrystalDialog(text:String, text2:String, text3:String, text4:String){
-		var gameDialog = new GameDialogSequence(text, text2, text3, text4);
+	function openCrystalDialog(text:String, text2:String) {
+		isReading = true;
+		var gameDialog = new GameDialogSequence(text, text2, true, false);
 		initSubState(gameDialog);
 		addSubState(gameDialog);
-		timeScale=0;
+		timeScale = 0;
 	}
 
 	public function closeDialog(subState:State){
 		removeSubState(subState);
 		timeScale=1;
+		isReading = false;
+		hasRead = true;
 	}
 
 	public function unlockItem(name:String){

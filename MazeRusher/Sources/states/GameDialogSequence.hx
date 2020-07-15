@@ -21,18 +21,14 @@ import com.framework.utils.State;
 class GameDialogSequence extends GameDialog {
     var text:String;
     var text2:String;
-    var text3:String;
-    var text4:String;
     var actualText:Int = 1;
     var textDisplay:Text;
     var texts:Array<String>;
-    public function new(dialogText:String, dialogText2:String, dialogText3:String, dialogText4:String) {
-        super();
+    public function new(dialogText:String, dialogText2:String, changeToGF:Bool=null, isGF:Bool=null) {
+        super(changeToGF, isGF);
         text = dialogText;
         text2 = dialogText2;
-        text3 = dialogText3;
-        text4 = dialogText4;
-        texts = ["", text, text2, text3, text4];
+        texts = ["", text, text2];
     }
     override function load(resources:Resources) {
         super.load(resources);
@@ -50,8 +46,8 @@ class GameDialogSequence extends GameDialog {
     }
 
     override function update(dt:Float) {
-		if (Input.i.isKeyCodePressed(KeyCode.Escape)) {
-			if (actualText < 4) {
+		if (Input.i.isKeyCodePressed(KeyCode.Space)) {
+			if (actualText < 2) {
                 textDisplay.removeFromParent();
 				actualText++;
 				textDisplay = new Text(Assets.fonts.Kenney_PixelName);

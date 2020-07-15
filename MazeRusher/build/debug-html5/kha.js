@@ -12533,7 +12533,7 @@ var kha__$Assets_SoundList = function() {
 	this.finalStageTheme = null;
 	this.finalBattleThemeDescription = { name : "finalBattleTheme", file_sizes : [1543288], files : ["finalBattleTheme.ogg"], type : "sound"};
 	this.finalBattleTheme = null;
-	this.boomerangSoundEffectDescription = { name : "boomerangSoundEffect", file_sizes : [16850], files : ["boomerangSoundEffect.ogg"], type : "sound"};
+	this.boomerangSoundEffectDescription = { name : "boomerangSoundEffect", file_sizes : [13050], files : ["boomerangSoundEffect.ogg"], type : "sound"};
 	this.boomerangSoundEffect = null;
 	this.bagpipeSoundEffectDescription = { name : "bagpipeSoundEffect", file_sizes : [37232], files : ["bagpipeSoundEffect.ogg"], type : "sound"};
 	this.bagpipeSoundEffect = null;
@@ -25409,8 +25409,12 @@ kha_netsync_Session.prototype = {
 	}
 	,__class__: kha_netsync_Session
 };
-var states_GameDialog = function() {
+var states_GameDialog = function(changeToGF,isGF) {
+	this.isGameFinish = false;
+	this.changeToGameFinish = false;
 	com_framework_utils_State.call(this);
+	this.changeToGameFinish = changeToGF;
+	this.isGameFinish = isGF;
 };
 $hxClasses["states.GameDialog"] = states_GameDialog;
 states_GameDialog.__name__ = "states.GameDialog";
@@ -25418,7 +25422,7 @@ states_GameDialog.__super__ = com_framework_utils_State;
 states_GameDialog.prototype = $extend(com_framework_utils_State.prototype,{
 	load: function(resources) {
 		var atlas = new com_loading_basicResources_JoinAtlas(1024,1024);
-		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,14));
+		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,30));
 		resources.add(atlas);
 	}
 	,init: function() {
@@ -25437,7 +25441,7 @@ states_GameDialog.prototype = $extend(com_framework_utils_State.prototype,{
 		textBoxDisplay.scaleY = 100;
 		this.stage.addChild(textBoxDisplay);
 		var closeDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
-		closeDisplay.set_text("Press escape to close");
+		closeDisplay.set_text("Press space to continue");
 		closeDisplay.x = textBoxDisplay.x + 110;
 		closeDisplay.y = textBoxDisplay.y + 60;
 		closeDisplay.set_color(-65536);
@@ -25446,13 +25450,21 @@ states_GameDialog.prototype = $extend(com_framework_utils_State.prototype,{
 	}
 	,update: function(dt) {
 		com_framework_utils_State.prototype.update.call(this,dt);
-		if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
+		if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
 			this.close();
 		}
 	}
 	,close: function() {
-		var originalState = this.parentState;
-		originalState.closeDialog(this);
+		if(this.isGameFinish) {
+			var originalState = this.parentState;
+			originalState.closeDialog(this);
+		} else {
+			var originalState1 = this.parentState;
+			originalState1.closeDialog(this);
+			if(this.changeToGameFinish) {
+				originalState1.changeState(new states_GameFinish());
+			}
+		}
 	}
 	,__class__: states_GameDialog
 });
@@ -25526,14 +25538,12 @@ states_GameDialogNpc.prototype = $extend(states_GameDialog.prototype,{
 	}
 	,__class__: states_GameDialogNpc
 });
-var states_GameDialogSequence = function(dialogText,dialogText2,dialogText3,dialogText4) {
+var states_GameDialogSequence = function(dialogText,dialogText2,changeToGF,isGF) {
 	this.actualText = 1;
-	states_GameDialog.call(this);
+	states_GameDialog.call(this,changeToGF,isGF);
 	this.text = dialogText;
 	this.text2 = dialogText2;
-	this.text3 = dialogText3;
-	this.text4 = dialogText4;
-	this.texts = ["",this.text,this.text2,this.text3,this.text4];
+	this.texts = ["",this.text,this.text2];
 };
 $hxClasses["states.GameDialogSequence"] = states_GameDialogSequence;
 states_GameDialogSequence.__name__ = "states.GameDialogSequence";
@@ -25552,8 +25562,8 @@ states_GameDialogSequence.prototype = $extend(states_GameDialog.prototype,{
 		this.stage.addChild(this.textDisplay);
 	}
 	,update: function(dt) {
-		if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
-			if(this.actualText < 4) {
+		if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+			if(this.actualText < 2) {
 				this.textDisplay.removeFromParent();
 				this.actualText++;
 				this.textDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
@@ -25568,6 +25578,42 @@ states_GameDialogSequence.prototype = $extend(states_GameDialog.prototype,{
 		}
 	}
 	,__class__: states_GameDialogSequence
+});
+var states_GameFinish = function() {
+	this.isReading = false;
+	com_framework_utils_State.call(this);
+};
+$hxClasses["states.GameFinish"] = states_GameFinish;
+states_GameFinish.__name__ = "states.GameFinish";
+states_GameFinish.__super__ = com_framework_utils_State;
+states_GameFinish.prototype = $extend(com_framework_utils_State.prototype,{
+	load: function(resources) {
+		var atlas = new com_loading_basicResources_JoinAtlas(1024,1024);
+		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,30));
+		resources.add(atlas);
+	}
+	,init: function() {
+		this.stage.set_color(-16777216);
+	}
+	,update: function(dt) {
+		com_framework_utils_State.prototype.update.call(this,dt);
+		if(!this.isReading) {
+			this.openDialog();
+		}
+	}
+	,closeDialog: function(subState) {
+		this.removeSubState(subState);
+		this.set_timeScale(1);
+		this.changeState(new states_GameOver("THE END"));
+	}
+	,openDialog: function() {
+		this.isReading = true;
+		var gameDialog = new states_GameDialogSequence(" -Will... Is that you?"," -It's been a while old friend... \n Welcome home.",false,true);
+		this.initSubState(gameDialog);
+		this.addSubState(gameDialog);
+		this.set_timeScale(0);
+	}
+	,__class__: states_GameFinish
 });
 var states_GameOver = function(gameOverMessage) {
 	com_framework_utils_State.call(this);
@@ -25610,6 +25656,10 @@ states_GameOver.prototype = $extend(com_framework_utils_State.prototype,{
 	,__class__: states_GameOver
 });
 var states_GameState = function(room,playerPosX,playerPosY) {
+	this.hasRead = false;
+	this.readCooldown = 0.2;
+	this.timeSinceRead = 0;
+	this.isReading = false;
 	this.actualMap = "startingArea_tmx";
 	this.initialPosY = 448;
 	this.initialPosX = 128;
@@ -25787,30 +25837,45 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		com_collision_platformer_CollisionEngine.collide(this.golemUpCollision,this.worldMap.collision,$bind(this,this.golemVsWalls));
 		com_collision_platformer_CollisionEngine.collide(this.golemDownCollision,this.worldMap.collision,$bind(this,this.golemVsWalls));
 		com_collision_platformer_CollisionEngine.collide(this.golemUpCollision,this.golemDownCollision,$bind(this,this.golemVsGolem));
-		com_collision_platformer_CollisionEngine.overlap(this.booksCollision,this.william.collision,$bind(this,this.williamVsBook));
-		com_collision_platformer_CollisionEngine.overlap(this.npcsCollision,this.william.collision,$bind(this,this.williamVsNpc));
-		com_collision_platformer_CollisionEngine.overlap(this.crystalCollision,this.william.collision,$bind(this,this.williamVsCrystal));
+		if(!this.isReading && !this.hasRead) {
+			com_collision_platformer_CollisionEngine.overlap(this.booksCollision,this.william.collision,$bind(this,this.williamVsBook));
+			com_collision_platformer_CollisionEngine.overlap(this.npcsCollision,this.william.collision,$bind(this,this.williamVsNpc));
+			com_collision_platformer_CollisionEngine.overlap(this.crystalCollision,this.william.collision,$bind(this,this.williamVsCrystal));
+		}
+		if(this.timeSinceRead >= this.readCooldown) {
+			this.hasRead = false;
+			this.timeSinceRead = 0;
+		}
+		if(this.hasRead) {
+			this.timeSinceRead += dt;
+		}
 		this.stage.cameras[0].setTarget(this.william.collision.x,this.william.collision.y);
 		this.showCurrentLives();
 		this.showCurrentItems();
 	}
 	,williamVsCrystal: function(crystalCollision,playerCollision) {
-		var dialog = crystalCollision.userData;
-		if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
-			this.openCrystalDialog(dialog.text,dialog.text2,dialog.text3,dialog.text4);
+		if(!this.isReading) {
+			var dialog = crystalCollision.userData;
+			if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+				this.openCrystalDialog(dialog.text,dialog.text2);
+			}
 		}
 	}
 	,williamVsBook: function(booksCollision,playerCollision) {
-		var dialog = booksCollision.userData;
-		if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
-			this.openBookDialog(dialog.text,dialog.textGuide);
+		if(!this.isReading) {
+			var dialog = booksCollision.userData;
+			if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+				this.openBookDialog(dialog.text,dialog.textGuide);
+			}
 		}
 	}
 	,williamVsNpc: function(npcsCollision,playerCollision) {
-		var dialog = npcsCollision.userData;
-		if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
-			this.openNpcDialog(dialog.text);
-			this.unlockItem(dialog.weapon);
+		if(!this.isReading) {
+			var dialog = npcsCollision.userData;
+			if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+				this.openNpcDialog(dialog.text);
+				this.unlockItem(dialog.weapon);
+			}
 		}
 	}
 	,activateSpawns: function(interactionCollision,playerCollision) {
@@ -25918,19 +25983,22 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		}
 	}
 	,openBookDialog: function(text,textGuide) {
+		this.isReading = true;
 		var gameDialog = new states_GameDialogBook(text,textGuide);
 		this.initSubState(gameDialog);
 		this.addSubState(gameDialog);
 		this.set_timeScale(0);
 	}
 	,openNpcDialog: function(text) {
+		this.isReading = true;
 		var gameDialog = new states_GameDialogNpc(text);
 		this.initSubState(gameDialog);
 		this.addSubState(gameDialog);
 		this.set_timeScale(0);
 	}
-	,openCrystalDialog: function(text,text2,text3,text4) {
-		var gameDialog = new states_GameDialogSequence(text,text2,text3,text4);
+	,openCrystalDialog: function(text,text2) {
+		this.isReading = true;
+		var gameDialog = new states_GameDialogSequence(text,text2,true,false);
 		this.initSubState(gameDialog);
 		this.addSubState(gameDialog);
 		this.set_timeScale(0);
@@ -25938,6 +26006,8 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 	,closeDialog: function(subState) {
 		this.removeSubState(subState);
 		this.set_timeScale(1);
+		this.isReading = false;
+		this.hasRead = true;
 	}
 	,unlockItem: function(name) {
 		if(name == "bagpipe") {

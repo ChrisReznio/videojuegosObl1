@@ -19,13 +19,17 @@ import com.loading.Resources;
 import com.framework.utils.State;
 
 class GameDialog extends State {
-    public function new() {
+    var changeToGameFinish = false;
+    var isGameFinish = false;
+    public function new(changeToGF:Bool=null, isGF:Bool=null) {
         super();
+        changeToGameFinish = changeToGF;
+        isGameFinish = isGF;
     }
 
     override function load(resources:Resources) {
         var atlas:JoinAtlas=new JoinAtlas(1024,1024);
-        atlas.add(new FontLoader(Assets.fonts.Kenney_PixelName,14));
+        atlas.add(new FontLoader(Assets.fonts.Kenney_PixelName,30));
         resources.add(atlas);
     }
 
@@ -48,7 +52,7 @@ class GameDialog extends State {
         stage.addChild(textBoxDisplay);
 
         var closeDisplay=new Text(Assets.fonts.Kenney_PixelName);
-        closeDisplay.text="Press escape to close";
+        closeDisplay.text="Press space to continue";
         closeDisplay.x = textBoxDisplay.x + 110;
         closeDisplay.y = textBoxDisplay.y + 60;
         closeDisplay.color=Color.Red;
@@ -57,12 +61,21 @@ class GameDialog extends State {
     }
     override function update(dt:Float) {
         super.update(dt);
-        if(Input.i.isKeyCodePressed(KeyCode.Escape)){
+        if(Input.i.isKeyCodePressed(KeyCode.Space)){
             close();
         }
     }
     function close(){
-        var originalState:GameState = cast parentState;
-        originalState.closeDialog(this);
+        if(isGameFinish){
+            var originalState:GameFinish = cast parentState;
+            originalState.closeDialog(this);
+        }
+        else{
+            var originalState:GameState = cast parentState;
+            originalState.closeDialog(this);
+            if(changeToGameFinish){
+                originalState.changeState(new GameFinish());
+            }
+        }
     }
 }

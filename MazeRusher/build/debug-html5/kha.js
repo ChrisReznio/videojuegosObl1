@@ -9878,6 +9878,8 @@ gameObjects_William.prototype = $extend(com_framework_utils_Entity.prototype,{
 		this.weapon.swingSword(this.collision.x,this.collision.y,this.direction.x,this.direction.y);
 	}
 	,tossSwapparang: function() {
+		com_soundLib_SoundManager.playFx("boomerangSoundEffect");
+		com_soundLib_SoundManager.musicVolume(0.4);
 		this.rangedWeapon.tossSwapparang(this.collision.x + 8,this.collision.y + 6,this.direction.x,this.direction.y);
 	}
 	,playSong: function() {
@@ -9887,6 +9889,8 @@ gameObjects_William.prototype = $extend(com_framework_utils_Entity.prototype,{
 	}
 	,takeDamage: function() {
 		if(!this.takingDmg) {
+			com_soundLib_SoundManager.playFx("playerDamageSoundEffect");
+			com_soundLib_SoundManager.musicVolume(0.4);
 			this.takingDmg = true;
 			GlobalGameData.lives--;
 		}
@@ -12523,10 +12527,14 @@ kha__$Assets_ImageList.prototype = {
 var kha__$Assets_SoundList = function() {
 	this.slashSoundEffectDescription = { name : "slashSoundEffect", file_sizes : [12588], files : ["slashSoundEffect.ogg"], type : "sound"};
 	this.slashSoundEffect = null;
+	this.playerDamageSoundEffectDescription = { name : "playerDamageSoundEffect", file_sizes : [7588], files : ["playerDamageSoundEffect.ogg"], type : "sound"};
+	this.playerDamageSoundEffect = null;
 	this.finalStageThemeDescription = { name : "finalStageTheme", file_sizes : [2420064], files : ["finalStageTheme.ogg"], type : "sound"};
 	this.finalStageTheme = null;
 	this.finalBattleThemeDescription = { name : "finalBattleTheme", file_sizes : [1543288], files : ["finalBattleTheme.ogg"], type : "sound"};
 	this.finalBattleTheme = null;
+	this.boomerangSoundEffectDescription = { name : "boomerangSoundEffect", file_sizes : [16850], files : ["boomerangSoundEffect.ogg"], type : "sound"};
+	this.boomerangSoundEffect = null;
 	this.bagpipeSoundEffectDescription = { name : "bagpipeSoundEffect", file_sizes : [37232], files : ["bagpipeSoundEffect.ogg"], type : "sound"};
 	this.bagpipeSoundEffect = null;
 	this.ambientalThemeDescription = { name : "ambientalTheme", file_sizes : [1575896], files : ["ambientalTheme.ogg"], type : "sound"};
@@ -25640,8 +25648,11 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		resources.add(atlas);
 		resources.add(new com_loading_basicResources_SoundLoader("ambientalTheme",false));
 		resources.add(new com_loading_basicResources_SoundLoader("finalStageTheme",false));
+		resources.add(new com_loading_basicResources_SoundLoader("finalBattleTheme",false));
 		resources.add(new com_loading_basicResources_SoundLoader("slashSoundEffect"));
+		resources.add(new com_loading_basicResources_SoundLoader("playerDamageSoundEffect"));
 		resources.add(new com_loading_basicResources_SoundLoader("bagpipeSoundEffect"));
+		resources.add(new com_loading_basicResources_SoundLoader("boomerangSoundEffect"));
 	}
 	,init: function() {
 		var _gthis = this;

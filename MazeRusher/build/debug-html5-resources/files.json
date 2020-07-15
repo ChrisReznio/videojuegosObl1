@@ -265,6 +265,16 @@
 			"original_height": 32
 		},
 		{
+			"name": "boomerangSoundEffect",
+			"files": [
+				"boomerangSoundEffect.ogg"
+			],
+			"file_sizes": [
+				16850
+			],
+			"type": "sound"
+		},
+		{
 			"name": "brokenHeart",
 			"files": [
 				"brokenHeart.png"
@@ -1342,6 +1352,16 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "playerDamageSoundEffect",
+			"files": [
+				"playerDamageSoundEffect.ogg"
+			],
+			"file_sizes": [
+				7588
+			],
+			"type": "sound"
 		},
 		{
 			"name": "playerLife",

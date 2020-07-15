@@ -170,10 +170,11 @@ class GameState extends State {
 		resources.add(atlas);
 		resources.add(new SoundLoader("ambientalTheme",false));
 		resources.add(new SoundLoader("finalStageTheme",false));
-		// resources.add(new SoundLoader("finalBattleTheme",false));
+		resources.add(new SoundLoader("finalBattleTheme",false));
 		resources.add(new SoundLoader("slashSoundEffect"));
-		//resources.add(new SoundLoader("playerDamageSoundEffect"));
+		resources.add(new SoundLoader("playerDamageSoundEffect"));
 		resources.add(new SoundLoader("bagpipeSoundEffect"));
+		resources.add(new SoundLoader("boomerangSoundEffect"));
 	}
 
 	override function init() {

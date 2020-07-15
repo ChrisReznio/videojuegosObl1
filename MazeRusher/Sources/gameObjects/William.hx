@@ -206,6 +206,8 @@ class William extends Entity {
 	}
 
 	public function tossSwapparang(){
+		SoundManager.playFx("boomerangSoundEffect");
+		SoundManager.musicVolume(0.4);
 		rangedWeapon.tossSwapparang(collision.x + 8, collision.y + 6, direction.x, direction.y);
 	}
 
@@ -217,8 +219,8 @@ class William extends Entity {
 
 	public function takeDamage(){
 		if(!takingDmg){
-			//SoundManager.playFx("playerDamageSoundEffect");
-			//SoundManager.musicVolume(0.4);
+			SoundManager.playFx("playerDamageSoundEffect");
+			SoundManager.musicVolume(0.4);
 			takingDmg = true;
 			GGD.lives--;
 		}

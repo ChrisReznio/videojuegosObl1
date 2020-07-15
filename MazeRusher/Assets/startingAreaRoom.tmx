@@ -94,7 +94,7 @@
     <property name="isDoor" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="3" x="284.75" y="217.833">
+  <object id="3" x="272.568" y="207.924" width="23.7273" height="22.5455">
    <properties>
     <property name="isBook" type="bool" value="true"/>
     <property name="text">Maurice's Diary: 

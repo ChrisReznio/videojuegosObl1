@@ -474,39 +474,24 @@ class GameState extends State {
 		}
 	}
 	function openBookDialog(text:String, textGuide:String){
-		var gameDialog = new GameDialog(text, textGuide);
+		var gameDialog = new GameDialogBook(text, textGuide);
 		initSubState(gameDialog);
 		addSubState(gameDialog);
 		timeScale=0;
 	}
 
 	function openNpcDialog(text:String){
-		var gameDialog = new GameNpcDialog(text);
+		var gameDialog = new GameDialogNpc(text);
 		initSubState(gameDialog);
 		addSubState(gameDialog);
 		timeScale=0;
 	}
 
 	function openCrystalDialog(text:String, text2:String, text3:String, text4:String){
-		// var gameDialog = new GameFinalDialog(text);
-		// initSubState(gameDialog);
-		// addSubState(gameDialog);
-		if (Input.i.isKeyCodePressed(KeyCode.Escape)){
-			var gameDialog2 = new GameNpcDialog(text2);
-			initSubState(gameDialog2);
-			addSubState(gameDialog2);
-			if (Input.i.isKeyCodePressed(KeyCode.Escape)){
-				var gameDialog3 = new GameNpcDialog(text3);
-				initSubState(gameDialog3);
-				addSubState(gameDialog3);
-				if (Input.i.isKeyCodePressed(KeyCode.Escape)){
-					var gameDialog4 = new GameNpcDialog(text4);
-					initSubState(gameDialog4);
-					addSubState(gameDialog4);
-					
-				}
-			}
-		}
+		var gameDialog = new GameDialogSequence(text, text2, text3, text4);
+		initSubState(gameDialog);
+		addSubState(gameDialog);
+		timeScale=0;
 	}
 
 	public function closeDialog(subState:State){

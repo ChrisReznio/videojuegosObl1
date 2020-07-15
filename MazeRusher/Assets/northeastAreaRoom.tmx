@@ -104,7 +104,7 @@
  SWAPPARANG in Gabriel's remains</property>
    </properties>
   </object>
-  <object id="5" x="310.667" y="258.917" width="20.6667" height="19">
+  <object id="5" x="308" y="258.917" width="23.3334" height="19">
    <properties>
     <property name="isBook" type="bool" value="true"/>
     <property name="text">Gabriel's Diary: 

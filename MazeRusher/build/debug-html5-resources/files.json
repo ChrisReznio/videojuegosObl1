@@ -328,7 +328,7 @@
 				"finalArea.tmx"
 			],
 			"file_sizes": [
-				12720
+				15062
 			],
 			"type": "blob"
 		},
@@ -874,7 +874,7 @@
 				"northeastAreaRoom.tmx"
 			],
 			"file_sizes": [
-				11648
+				11644
 			],
 			"type": "blob"
 		},
@@ -2151,7 +2151,7 @@
 				"startingAreaRoom.tmx"
 			],
 			"file_sizes": [
-				11725
+				11759
 			],
 			"type": "blob"
 		},
@@ -2171,11 +2171,11 @@
 				"tile_crystal.png"
 			],
 			"file_sizes": [
-				1794
+				1732
 			],
 			"type": "image",
-			"original_width": 160,
-			"original_height": 160
+			"original_width": 158,
+			"original_height": 141
 		},
 		{
 			"name": "tile_indoors",

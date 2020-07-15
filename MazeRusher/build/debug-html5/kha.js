@@ -4068,6 +4068,11 @@ com_gEngine_display_Layer.prototype = {
 			++counter;
 		}
 	}
+	,removeFromParent: function() {
+		if(this.parent != null) {
+			this.parent.remove(this);
+		}
+	}
 	,sort: function(functionSort) {
 		haxe_ds_ArraySort.sort(this.children,functionSort);
 	}
@@ -12478,7 +12483,7 @@ var kha__$Assets_ImageList = function() {
 	this.tile_terrain = null;
 	this.tile_indoorsDescription = { name : "tile_indoors", original_height : 192, file_sizes : [18508], original_width : 176, files : ["tile_indoors.png"], type : "image"};
 	this.tile_indoors = null;
-	this.tile_crystalDescription = { name : "tile_crystal", original_height : 160, file_sizes : [1794], original_width : 160, files : ["tile_crystal.png"], type : "image"};
+	this.tile_crystalDescription = { name : "tile_crystal", original_height : 141, file_sizes : [1732], original_width : 158, files : ["tile_crystal.png"], type : "image"};
 	this.tile_crystal = null;
 	this.songDescription = { name : "song", original_height : 188, file_sizes : [3113], original_width : 240, files : ["song.png"], type : "image"};
 	this.song = null;
@@ -12538,7 +12543,7 @@ kha__$Assets_SoundList.prototype = {
 var kha__$Assets_BlobList = function() {
 	this.startingArea_tmxDescription = { name : "startingArea_tmx", file_sizes : [14569], files : ["startingArea.tmx"], type : "blob"};
 	this.startingArea_tmx = null;
-	this.startingAreaRoom_tmxDescription = { name : "startingAreaRoom_tmx", file_sizes : [11725], files : ["startingAreaRoom.tmx"], type : "blob"};
+	this.startingAreaRoom_tmxDescription = { name : "startingAreaRoom_tmx", file_sizes : [11759], files : ["startingAreaRoom.tmx"], type : "blob"};
 	this.startingAreaRoom_tmx = null;
 	this.southwestArea_tmxDescription = { name : "southwestArea_tmx", file_sizes : [14489], files : ["southwestArea.tmx"], type : "blob"};
 	this.southwestArea_tmx = null;
@@ -12546,9 +12551,9 @@ var kha__$Assets_BlobList = function() {
 	this.objects_tsx = null;
 	this.northeastArea_tmxDescription = { name : "northeastArea_tmx", file_sizes : [13610], files : ["northeastArea.tmx"], type : "blob"};
 	this.northeastArea_tmx = null;
-	this.northeastAreaRoom_tmxDescription = { name : "northeastAreaRoom_tmx", file_sizes : [11648], files : ["northeastAreaRoom.tmx"], type : "blob"};
+	this.northeastAreaRoom_tmxDescription = { name : "northeastAreaRoom_tmx", file_sizes : [11644], files : ["northeastAreaRoom.tmx"], type : "blob"};
 	this.northeastAreaRoom_tmx = null;
-	this.finalArea_tmxDescription = { name : "finalArea_tmx", file_sizes : [12720], files : ["finalArea.tmx"], type : "blob"};
+	this.finalArea_tmxDescription = { name : "finalArea_tmx", file_sizes : [15062], files : ["finalArea.tmx"], type : "blob"};
 	this.finalArea_tmx = null;
 };
 $hxClasses["kha._Assets.BlobList"] = kha__$Assets_BlobList;
@@ -25396,10 +25401,8 @@ kha_netsync_Session.prototype = {
 	}
 	,__class__: kha_netsync_Session
 };
-var states_GameDialog = function(dialogText,dialogTextGuide) {
+var states_GameDialog = function() {
 	com_framework_utils_State.call(this);
-	this.text = dialogText;
-	this.textGuide = dialogTextGuide;
 };
 $hxClasses["states.GameDialog"] = states_GameDialog;
 states_GameDialog.__name__ = "states.GameDialog";
@@ -25409,6 +25412,53 @@ states_GameDialog.prototype = $extend(com_framework_utils_State.prototype,{
 		var atlas = new com_loading_basicResources_JoinAtlas(1024,1024);
 		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,14));
 		resources.add(atlas);
+	}
+	,init: function() {
+		var outerBoxDisplay = new com_gEngine_helper_RectangleDisplay();
+		outerBoxDisplay.x = 399;
+		outerBoxDisplay.y = 499;
+		outerBoxDisplay.setColor(0,0,0);
+		outerBoxDisplay.scaleX = 482;
+		outerBoxDisplay.scaleY = 102;
+		this.stage.addChild(outerBoxDisplay);
+		var textBoxDisplay = new com_gEngine_helper_RectangleDisplay();
+		textBoxDisplay.x = 400;
+		textBoxDisplay.y = 500;
+		textBoxDisplay.setColor(255,255,255);
+		textBoxDisplay.scaleX = 480;
+		textBoxDisplay.scaleY = 100;
+		this.stage.addChild(textBoxDisplay);
+		var closeDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		closeDisplay.set_text("Press escape to close");
+		closeDisplay.x = textBoxDisplay.x + 110;
+		closeDisplay.y = textBoxDisplay.y + 60;
+		closeDisplay.set_color(-65536);
+		this.stage.addChild(closeDisplay);
+		this.stage.set_color(0);
+	}
+	,update: function(dt) {
+		com_framework_utils_State.prototype.update.call(this,dt);
+		if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
+			this.close();
+		}
+	}
+	,close: function() {
+		var originalState = this.parentState;
+		originalState.closeDialog(this);
+	}
+	,__class__: states_GameDialog
+});
+var states_GameDialogBook = function(dialogText,dialogTextGuide) {
+	states_GameDialog.call(this);
+	this.text = dialogText;
+	this.textGuide = dialogTextGuide;
+};
+$hxClasses["states.GameDialogBook"] = states_GameDialogBook;
+states_GameDialogBook.__name__ = "states.GameDialogBook";
+states_GameDialogBook.__super__ = states_GameDialog;
+states_GameDialogBook.prototype = $extend(states_GameDialog.prototype,{
+	load: function(resources) {
+		states_GameDialog.prototype.load.call(this,resources);
 	}
 	,init: function() {
 		var textBoxDisplay = new com_gEngine_helper_RectangleDisplay();
@@ -25439,70 +25489,77 @@ states_GameDialog.prototype = $extend(com_framework_utils_State.prototype,{
 		this.stage.set_color(0);
 	}
 	,update: function(dt) {
-		com_framework_utils_State.prototype.update.call(this,dt);
-		if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
-			this.close();
-		}
+		states_GameDialog.prototype.update.call(this,dt);
 	}
-	,close: function() {
-		var originalState = this.parentState;
-		originalState.closeDialog(this);
-	}
-	,__class__: states_GameDialog
+	,__class__: states_GameDialogBook
 });
-var states_GameNpcDialog = function(dialogText) {
-	com_framework_utils_State.call(this);
+var states_GameDialogNpc = function(dialogText) {
+	states_GameDialog.call(this);
 	this.text = dialogText;
 };
-$hxClasses["states.GameNpcDialog"] = states_GameNpcDialog;
-states_GameNpcDialog.__name__ = "states.GameNpcDialog";
-states_GameNpcDialog.__super__ = com_framework_utils_State;
-states_GameNpcDialog.prototype = $extend(com_framework_utils_State.prototype,{
+$hxClasses["states.GameDialogNpc"] = states_GameDialogNpc;
+states_GameDialogNpc.__name__ = "states.GameDialogNpc";
+states_GameDialogNpc.__super__ = states_GameDialog;
+states_GameDialogNpc.prototype = $extend(states_GameDialog.prototype,{
 	load: function(resources) {
-		var atlas = new com_loading_basicResources_JoinAtlas(1024,1024);
-		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,14));
-		resources.add(atlas);
+		states_GameDialog.prototype.load.call(this,resources);
 	}
 	,init: function() {
-		var outerBoxDisplay = new com_gEngine_helper_RectangleDisplay();
-		outerBoxDisplay.x = 399;
-		outerBoxDisplay.y = 499;
-		outerBoxDisplay.setColor(0,0,0);
-		outerBoxDisplay.scaleX = 472;
-		outerBoxDisplay.scaleY = 102;
-		this.stage.addChild(outerBoxDisplay);
-		var textBoxDisplay = new com_gEngine_helper_RectangleDisplay();
-		textBoxDisplay.x = 400;
-		textBoxDisplay.y = 500;
-		textBoxDisplay.setColor(255,255,255);
-		textBoxDisplay.scaleX = 470;
-		textBoxDisplay.scaleY = 100;
-		this.stage.addChild(textBoxDisplay);
+		states_GameDialog.prototype.init.call(this);
 		var textDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
 		textDisplay.set_text(this.text);
-		textDisplay.x = textBoxDisplay.x + 30;
-		textDisplay.y = textBoxDisplay.y + 5;
+		textDisplay.x = 426;
+		textDisplay.y = 505;
 		textDisplay.set_color(-16777216);
 		this.stage.addChild(textDisplay);
-		var closeDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
-		closeDisplay.set_text("Press escape to close");
-		closeDisplay.x = textBoxDisplay.x + 110;
-		closeDisplay.y = textBoxDisplay.y + 60;
-		closeDisplay.set_color(-65536);
-		this.stage.addChild(closeDisplay);
-		this.stage.set_color(0);
 	}
 	,update: function(dt) {
-		com_framework_utils_State.prototype.update.call(this,dt);
+		states_GameDialog.prototype.update.call(this,dt);
+	}
+	,__class__: states_GameDialogNpc
+});
+var states_GameDialogSequence = function(dialogText,dialogText2,dialogText3,dialogText4) {
+	this.actualText = 1;
+	states_GameDialog.call(this);
+	this.text = dialogText;
+	this.text2 = dialogText2;
+	this.text3 = dialogText3;
+	this.text4 = dialogText4;
+	this.texts = ["",this.text,this.text2,this.text3,this.text4];
+};
+$hxClasses["states.GameDialogSequence"] = states_GameDialogSequence;
+states_GameDialogSequence.__name__ = "states.GameDialogSequence";
+states_GameDialogSequence.__super__ = states_GameDialog;
+states_GameDialogSequence.prototype = $extend(states_GameDialog.prototype,{
+	load: function(resources) {
+		states_GameDialog.prototype.load.call(this,resources);
+	}
+	,init: function() {
+		states_GameDialog.prototype.init.call(this);
+		this.textDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		this.textDisplay.set_text(this.text);
+		this.textDisplay.x = 426;
+		this.textDisplay.y = 505;
+		this.textDisplay.set_color(-16777216);
+		this.stage.addChild(this.textDisplay);
+	}
+	,update: function(dt) {
 		if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
-			this.close();
+			if(this.actualText < 4) {
+				this.textDisplay.removeFromParent();
+				this.actualText++;
+				this.textDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+				this.textDisplay.set_text(this.texts[this.actualText]);
+				this.textDisplay.x = 426;
+				this.textDisplay.y = 505;
+				this.textDisplay.set_color(-16777216);
+				this.stage.addChild(this.textDisplay);
+			} else {
+				this.close();
+			}
 		}
 	}
-	,close: function() {
-		var originalState = this.parentState;
-		originalState.closeDialog(this);
-	}
-	,__class__: states_GameNpcDialog
+	,__class__: states_GameDialogSequence
 });
 var states_GameOver = function(gameOverMessage) {
 	com_framework_utils_State.call(this);
@@ -25850,33 +25907,22 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		}
 	}
 	,openBookDialog: function(text,textGuide) {
-		var gameDialog = new states_GameDialog(text,textGuide);
+		var gameDialog = new states_GameDialogBook(text,textGuide);
 		this.initSubState(gameDialog);
 		this.addSubState(gameDialog);
 		this.set_timeScale(0);
 	}
 	,openNpcDialog: function(text) {
-		var gameDialog = new states_GameNpcDialog(text);
+		var gameDialog = new states_GameDialogNpc(text);
 		this.initSubState(gameDialog);
 		this.addSubState(gameDialog);
 		this.set_timeScale(0);
 	}
 	,openCrystalDialog: function(text,text2,text3,text4) {
-		if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
-			var gameDialog2 = new states_GameNpcDialog(text2);
-			this.initSubState(gameDialog2);
-			this.addSubState(gameDialog2);
-			if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
-				var gameDialog3 = new states_GameNpcDialog(text3);
-				this.initSubState(gameDialog3);
-				this.addSubState(gameDialog3);
-				if(com_framework_utils_Input.i.isKeyCodePressed(27)) {
-					var gameDialog4 = new states_GameNpcDialog(text4);
-					this.initSubState(gameDialog4);
-					this.addSubState(gameDialog4);
-				}
-			}
-		}
+		var gameDialog = new states_GameDialogSequence(text,text2,text3,text4);
+		this.initSubState(gameDialog);
+		this.addSubState(gameDialog);
+		this.set_timeScale(0);
 	}
 	,closeDialog: function(subState) {
 		this.removeSubState(subState);

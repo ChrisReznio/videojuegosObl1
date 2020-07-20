@@ -161,7 +161,7 @@
   </object>
   <object id="9" x="346.667" y="221.333" width="19.3333" height="64">
    <properties>
-    <property name="activatesSpawn" type="bool" value="true"/>
+    <property name="isTrap" type="bool" value="true"/>
    </properties>
   </object>
   <object id="10" x="2.84033" y="2.27543" width="67.5561" height="63.0523">

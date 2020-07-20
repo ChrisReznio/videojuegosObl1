@@ -54,7 +54,7 @@ class GameDialogBook extends GameDialog {
         stage.addChild(textGuideDisplay);
 
         var closeDisplay=new Text(Assets.fonts.Kenney_PixelName);
-        closeDisplay.text="Press escape to close";
+        closeDisplay.text="Press space to continue";
         closeDisplay.x = textBoxDisplay.x + 50;
         closeDisplay.y = textBoxDisplay.y + 400;
         closeDisplay.color=Color.Red;

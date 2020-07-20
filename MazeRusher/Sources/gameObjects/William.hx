@@ -29,49 +29,40 @@ class William extends Entity {
 
 	public function new(x:Float,y:Float,layer:Layer) {
 		super();
+
 		direction = new FastVector2(0,1);
+
 		display = new Sprite("william");
+		display.scaleX = display.scaleY = 1;
 		display.smooth = false;
+		display.timeline.frameRate = 1/10;
 		layer.addChild(display);
 
 		collision = new CollisionBox();
 		collision.width = display.width()*0.5;
 		collision.height = display.height()*0.6;
 		display.pivotX = display.width()/2;
-		
-		display.scaleX = display.scaleY = 1;
 		collision.x=x;
 		collision.y=y;
+		collision.userData = this;
+		
 		display.offsetX = -collision.width*0.5;
 		display.offsetY = -collision.height*0.6;
 
-		weapon=new Weapon();
-		rangedWeapon=new RangedWeapon();
-		instrument = new Instrument();
-		addChild(weapon);
-		addChild(rangedWeapon);
-		addChild(instrument);
-
-		collision.userData = this;
+		createWeapons();
 	}
 
 	override function update(dt:Float) {
 		super.update(dt);
-		if(GGD.bagpipeCoolDown > 0){
-			GGD.bagpipeCoolDown -= dt;
-		}
-		if(GGD.swapparangCoolDown > 0){
-			GGD.swapparangCoolDown -= dt;
-		}
+
+		updateWeaponCooldowns(dt);
+
 		collision.velocityX=0;
 		collision.velocityY=0;
-		if(timeTakingDmg >= 1){
-			timeTakingDmg = 0;
-			takingDmg = false;
-		}
-		if(takingDmg){
-			timeTakingDmg += dt;
-		}
+
+		updateDamageCooldown(dt);
+		
+		//player movement
 		if(isSlashing){
 			return;
 		}
@@ -146,17 +137,16 @@ class William extends Entity {
 					direction.x=0;
 				}
 			}
+
+			//player attacks
 			if(Input.i.isKeyCodePressed(KeyCode.Z)){
 				slash();
-				isSlashing = true;
 			}
 			if(Input.i.isKeyCodePressed(KeyCode.X) && GGD.unlockedBagpipe && GGD.bagpipeCoolDown <= 0){
 				playSong();
-				GGD.bagpipeCoolDown = 18;
 			}
 			if(Input.i.isKeyCodePressed(KeyCode.C) && GGD.unlockedSwapparang && GGD.swapparangCoolDown <= 0){
 				tossSwapparang();
-				GGD.swapparangCoolDown = 2;
 			}
 		}
 		collision.update(dt);
@@ -196,22 +186,52 @@ class William extends Entity {
 				}
 			}
 		}
-		display.timeline.frameRate = 1/10;
 	}	
 
-	public function slash(){
+	function createWeapons(){
+		weapon=new Weapon();
+		rangedWeapon=new RangedWeapon();
+		instrument = new Instrument();
+		addChild(weapon);
+		addChild(rangedWeapon);
+		addChild(instrument);
+	}
+
+	function updateWeaponCooldowns(dt:Float){
+		if(GGD.bagpipeCoolDown > 0){
+			GGD.bagpipeCoolDown -= dt;
+		}
+		if(GGD.swapparangCoolDown > 0){
+			GGD.swapparangCoolDown -= dt;
+		}
+	}
+
+	function updateDamageCooldown(dt:Float){
+		if(timeTakingDmg >= 1){
+			timeTakingDmg = 0;
+			takingDmg = false;
+		}
+		if(takingDmg){
+			timeTakingDmg += dt;
+		}
+	}
+
+	function slash(){
+		isSlashing = true;
 		SoundManager.playFx("slashSoundEffect");
 		SoundManager.musicVolume(0.4);
 		weapon.swingSword(collision.x, collision.y, direction.x, direction.y);
 	}
 
-	public function tossSwapparang(){
+	function tossSwapparang(){
+		GGD.swapparangCoolDown = 2;
 		SoundManager.playFx("boomerangSoundEffect");
 		SoundManager.musicVolume(0.4);
 		rangedWeapon.tossSwapparang(collision.x + 8, collision.y + 6, direction.x, direction.y);
 	}
 
-	public function playSong(){
+	function playSong(){
+		GGD.bagpipeCoolDown = 18;
 		SoundManager.playFx("bagpipeSoundEffect");
 		SoundManager.musicVolume(0.4);
 		instrument.play(collision.x, collision.y, direction.x, direction.y);

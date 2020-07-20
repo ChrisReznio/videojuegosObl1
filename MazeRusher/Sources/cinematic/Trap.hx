@@ -19,9 +19,10 @@ class Trap extends Entity {
 		collider = new CollisionBox();
 		collider.x = x;
 		collider.y = y;
-		collider.userData = this;
 		collider.width = width;
         collider.height = height;
+        
+		collider.userData = this;
     }
 
     override function update(dt:Float) {

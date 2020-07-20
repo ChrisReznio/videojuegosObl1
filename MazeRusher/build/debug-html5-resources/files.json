@@ -275,6 +275,16 @@
 			"type": "sound"
 		},
 		{
+			"name": "bossArea_tmx",
+			"files": [
+				"bossArea.tmx"
+			],
+			"file_sizes": [
+				10380
+			],
+			"type": "blob"
+		},
+		{
 			"name": "brokenHeart",
 			"files": [
 				"brokenHeart.png"
@@ -285,6 +295,18 @@
 			"type": "image",
 			"original_width": 212,
 			"original_height": 192
+		},
+		{
+			"name": "chest",
+			"files": [
+				"chest.png"
+			],
+			"file_sizes": [
+				4288
+			],
+			"type": "image",
+			"original_width": 210,
+			"original_height": 42
 		},
 		{
 			"name": "darkrai",
@@ -338,7 +360,7 @@
 				"finalArea.tmx"
 			],
 			"file_sizes": [
-				15057
+				14920
 			],
 			"type": "blob"
 		},
@@ -894,7 +916,7 @@
 				"northeastArea.tmx"
 			],
 			"file_sizes": [
-				13610
+				13602
 			],
 			"type": "blob"
 		},
@@ -2161,7 +2183,7 @@
 				"southwestArea.tmx"
 			],
 			"file_sizes": [
-				14489
+				14481
 			],
 			"type": "blob"
 		},
@@ -2332,6 +2354,18 @@
 			"type": "image",
 			"original_width": 96,
 			"original_height": 192
+		},
+		{
+			"name": "williamEnd",
+			"files": [
+				"williamEnd.png"
+			],
+			"file_sizes": [
+				2681
+			],
+			"type": "image",
+			"original_width": 46,
+			"original_height": 112
 		}
 	]
 }

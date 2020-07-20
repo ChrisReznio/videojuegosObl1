@@ -64,7 +64,7 @@
   </object>
   <object id="3" x="214.475" y="431.52" width="24.1666" height="32.8082">
    <properties>
-    <property name="activatesSpawn" type="bool" value="true"/>
+    <property name="isTrap" type="bool" value="true"/>
    </properties>
   </object>
   <object id="4" x="129.667" y="32.6573" width="29.0037" height="30.85">

@@ -108,10 +108,10 @@ var Main = function() { };
 $hxClasses["Main"] = Main;
 Main.__name__ = "Main";
 Main.main = function() {
-	var windowsOptions = new kha_WindowOptions("clase3",0,0,1280,720,null,true,1,0);
+	var windowsOptions = new kha_WindowOptions("Maze Rusher",0,0,1280,720,null,true,1,0);
 	var frameBufferOptions = new kha_FramebufferOptions(60,true,32,16,8,0);
-	kha_System.start(new kha_SystemOptions("clase3",1280,720,windowsOptions,frameBufferOptions),function(w) {
-		new com_framework_Simulation(states_GameState,1280,720,1,0);
+	kha_System.start(new kha_SystemOptions("Maze Rusher",1280,720,windowsOptions,frameBufferOptions),function(w) {
+		new com_framework_Simulation(states_GameStart,1280,720,1,0);
 	});
 };
 Math.__name__ = "Math";
@@ -599,12 +599,12 @@ var cinematic_Dialog = function(x,y,width,height,aText,aTextGuide,aWeapon) {
 	this.collider = new com_collision_platformer_CollisionBox();
 	this.collider.x = x;
 	this.collider.y = y;
-	this.collider.userData = this;
 	this.collider.width = width;
 	this.collider.height = height;
 	this.text = aText;
 	this.textGuide = aTextGuide;
 	this.weapon = aWeapon;
+	this.collider.userData = this;
 };
 $hxClasses["cinematic.Dialog"] = cinematic_Dialog;
 cinematic_Dialog.__name__ = "cinematic.Dialog";
@@ -620,12 +620,12 @@ var cinematic_Door = function(x,y,width,height,room,newPosX,newPosY) {
 	this.collider = new com_collision_platformer_CollisionBox();
 	this.collider.x = x;
 	this.collider.y = y;
-	this.collider.userData = this;
 	this.collider.width = width;
 	this.collider.height = height;
 	this.room = room;
 	this.newPosX = newPosX;
 	this.newPosY = newPosY;
+	this.collider.userData = this;
 };
 $hxClasses["cinematic.Door"] = cinematic_Door;
 cinematic_Door.__name__ = "cinematic.Door";
@@ -643,38 +643,16 @@ cinematic_Door.prototype = $extend(com_framework_utils_Entity.prototype,{
 	}
 	,__class__: cinematic_Door
 });
-var cinematic_FinalDialog = function(x,y,width,height,aText,aText2,aText3,aText4) {
-	com_framework_utils_Entity.call(this);
-	this.collider = new com_collision_platformer_CollisionBox();
-	this.collider.x = x;
-	this.collider.y = y;
-	this.collider.userData = this;
-	this.collider.width = width;
-	this.collider.height = height;
-	this.text = aText;
-	this.text2 = aText2;
-	this.text3 = aText3;
-	this.text4 = aText4;
-};
-$hxClasses["cinematic.FinalDialog"] = cinematic_FinalDialog;
-cinematic_FinalDialog.__name__ = "cinematic.FinalDialog";
-cinematic_FinalDialog.__super__ = com_framework_utils_Entity;
-cinematic_FinalDialog.prototype = $extend(com_framework_utils_Entity.prototype,{
-	update: function(dt) {
-		com_framework_utils_Entity.prototype.update.call(this,dt);
-	}
-	,__class__: cinematic_FinalDialog
-});
 var cinematic_Spawn = function(x,y,width,height,type,dirY) {
 	com_framework_utils_Entity.call(this);
 	this.collider = new com_collision_platformer_CollisionBox();
 	this.collider.x = x;
 	this.collider.y = y;
-	this.collider.userData = this;
 	this.collider.width = width;
 	this.collider.height = height;
 	this.enemyType = type;
 	this.directionY = dirY;
+	this.collider.userData = this;
 };
 $hxClasses["cinematic.Spawn"] = cinematic_Spawn;
 cinematic_Spawn.__name__ = "cinematic.Spawn";
@@ -710,9 +688,9 @@ var cinematic_Trap = function(x,y,width,height) {
 	this.collider = new com_collision_platformer_CollisionBox();
 	this.collider.x = x;
 	this.collider.y = y;
-	this.collider.userData = this;
 	this.collider.width = width;
 	this.collider.height = height;
+	this.collider.userData = this;
 };
 $hxClasses["cinematic.Trap"] = cinematic_Trap;
 cinematic_Trap.__name__ = "cinematic.Trap";
@@ -961,63 +939,11 @@ com_collision_platformer_CollisionBox.prototype = $extend(com_collision_platform
 			return false;
 		}
 	}
-	,debugDraw: function(canvas) {
-		var g2 = canvas.get_g2();
-		g2.drawLine(this.x,this.y,this.x + this.width,this.y);
-		g2.drawLine(this.x + this.width,this.y,this.x + this.width,this.y + this.height);
-		g2.drawLine(this.x + this.width,this.y + this.height,this.x,this.y + this.height);
-		g2.drawLine(this.x,this.y + this.height,this.x,this.y);
-	}
 	,__class__: com_collision_platformer_CollisionBox
 });
 var com_collision_platformer_CollisionEngine = function() { };
 $hxClasses["com.collision.platformer.CollisionEngine"] = com_collision_platformer_CollisionEngine;
 com_collision_platformer_CollisionEngine.__name__ = "com.collision.platformer.CollisionEngine";
-com_collision_platformer_CollisionEngine.renderDebug = function(canvas,camera) {
-	canvas.get_g2().begin(false);
-	canvas.get_g2().set_color(-256);
-	var cV = camera.view;
-	var scaleX = canvas.get_width() / camera.width;
-	var scaleY = canvas.get_height() / camera.height;
-	var _this = canvas.get_g2();
-	var _this__10 = 0;
-	var _this__20 = 0;
-	var _this__01 = 0;
-	var _this__21 = 0;
-	var _this__02 = 0;
-	var _this__12 = 0;
-	var _this__22 = 1;
-	var _00 = cV._00;
-	var _10 = cV._10;
-	var _20 = cV._30 + camera.width * 0.5;
-	var _01 = cV._01;
-	var _11 = cV._11;
-	var _21 = cV._31 + camera.height * 0.5;
-	var _02 = cV._03;
-	var _12 = cV._13;
-	var _22 = cV._33;
-	var transformation = new kha_math_FastMatrix3(scaleX * _00 + _this__10 * _01 + _this__20 * _02,scaleX * _10 + _this__10 * _11 + _this__20 * _12,scaleX * _20 + _this__10 * _21 + _this__20 * _22,_this__01 * _00 + scaleY * _01 + _this__21 * _02,_this__01 * _10 + scaleY * _11 + _this__21 * _12,_this__01 * _20 + scaleY * _21 + _this__21 * _22,_this__02 * _00 + _this__12 * _01 + _this__22 * _02,_this__02 * _10 + _this__12 * _11 + _this__22 * _12,_this__02 * _20 + _this__12 * _21 + _this__22 * _22);
-	_this.setTransformation(transformation);
-	var _this1 = _this.transformations[_this.transformationIndex];
-	_this1._00 = transformation._00;
-	_this1._10 = transformation._10;
-	_this1._20 = transformation._20;
-	_this1._01 = transformation._01;
-	_this1._11 = transformation._11;
-	_this1._21 = transformation._21;
-	_this1._02 = transformation._02;
-	_this1._12 = transformation._12;
-	_this1._22 = transformation._22;
-	var _g = 0;
-	var _g1 = com_collision_platformer_CollisionEngine.colliders;
-	while(_g < _g1.length) {
-		var collider = _g1[_g];
-		++_g;
-		collider.debugDraw(canvas);
-	}
-	canvas.get_g2().end();
-	com_collision_platformer_CollisionEngine.colliders.splice(0,com_collision_platformer_CollisionEngine.colliders.length);
-};
 com_collision_platformer_CollisionEngine.collide = function(A,B,aCallBack) {
 	com_collision_platformer_CollisionEngine.colliders.push(A);
 	com_collision_platformer_CollisionEngine.colliders.push(B);
@@ -1104,15 +1030,6 @@ com_collision_platformer_CollisionGroup.prototype = {
 	}
 	,collisionType: function() {
 		return com_collision_platformer_CollisionType.Group;
-	}
-	,debugDraw: function(canvas) {
-		var _g = 0;
-		var _g1 = this.colliders;
-		while(_g < _g1.length) {
-			var col = _g1[_g];
-			++_g;
-			col.debugDraw(canvas);
-		}
 	}
 	,__class__: com_collision_platformer_CollisionGroup
 };
@@ -1227,8 +1144,6 @@ com_collision_platformer_CollisionTileMap.prototype = {
 	}
 	,collisionType: function() {
 		return com_collision_platformer_CollisionType.TileMap;
-	}
-	,debugDraw: function(canvas) {
 	}
 	,__class__: com_collision_platformer_CollisionTileMap
 };
@@ -9097,11 +9012,11 @@ var gameObjects_Bagpipe = function() {
 	com_framework_utils_Entity.call(this);
 	this.display = new com_gEngine_display_Sprite("song");
 	this.display.scaleX = this.display.scaleY = 1;
+	this.display.timeline.frameRate = 0.125;
 	this.collision = new com_collision_platformer_CollisionBox();
 	this.collision.width = this.display.width();
 	this.collision.height = this.display.height();
 	this.collision.userData = this;
-	this.display.timeline.frameRate = 0.125;
 };
 $hxClasses["gameObjects.Bagpipe"] = gameObjects_Bagpipe;
 gameObjects_Bagpipe.__name__ = "gameObjects.Bagpipe";
@@ -9152,16 +9067,16 @@ var gameObjects_Golem = function(layer,collisions,x,y,dirY) {
 	com_framework_utils_Entity.call(this);
 	this.display = new com_gEngine_display_Sprite("golem");
 	this.display.set_smooth(false);
+	this.display.scaleX = this.display.scaleY = 1;
+	this.display.offsetX = -5;
+	this.display.offsetY = 5;
+	var tmp = this.display.width();
+	this.display.pivotX = tmp / 2;
 	layer.addChild(this.display);
 	this.collision = new com_collision_platformer_CollisionBox();
 	collisions.add(this.collision);
 	this.collision.width = 34;
 	this.collision.height = 34;
-	var tmp = this.display.width();
-	this.display.pivotX = tmp / 2;
-	this.display.scaleX = this.display.scaleY = 1;
-	this.display.offsetX = -5;
-	this.display.offsetY = 5;
 	this.collision.x = x;
 	this.collision.y = y;
 	this.collision.userData = this;
@@ -9682,7 +9597,9 @@ var gameObjects_William = function(x,y,layer) {
 	com_framework_utils_Entity.call(this);
 	this.direction = new kha_math_FastVector2(0,1);
 	this.display = new com_gEngine_display_Sprite("william");
+	this.display.scaleX = this.display.scaleY = 1;
 	this.display.set_smooth(false);
+	this.display.timeline.frameRate = 0.1;
 	layer.addChild(this.display);
 	this.collision = new com_collision_platformer_CollisionBox();
 	var tmp = this.display.width();
@@ -9691,18 +9608,12 @@ var gameObjects_William = function(x,y,layer) {
 	this.collision.height = tmp1 * 0.6;
 	var tmp2 = this.display.width();
 	this.display.pivotX = tmp2 / 2;
-	this.display.scaleX = this.display.scaleY = 1;
 	this.collision.x = x;
 	this.collision.y = y;
+	this.collision.userData = this;
 	this.display.offsetX = -this.collision.width * 0.5;
 	this.display.offsetY = -this.collision.height * 0.6;
-	this.weapon = new gameObjects_Weapon();
-	this.rangedWeapon = new gameObjects_RangedWeapon();
-	this.instrument = new gameObjects_Instrument();
-	this.addChild(this.weapon);
-	this.addChild(this.rangedWeapon);
-	this.addChild(this.instrument);
-	this.collision.userData = this;
+	this.createWeapons();
 };
 $hxClasses["gameObjects.William"] = gameObjects_William;
 gameObjects_William.__name__ = "gameObjects.William";
@@ -9710,21 +9621,10 @@ gameObjects_William.__super__ = com_framework_utils_Entity;
 gameObjects_William.prototype = $extend(com_framework_utils_Entity.prototype,{
 	update: function(dt) {
 		com_framework_utils_Entity.prototype.update.call(this,dt);
-		if(GlobalGameData.bagpipeCoolDown > 0) {
-			GlobalGameData.bagpipeCoolDown -= dt;
-		}
-		if(GlobalGameData.swapparangCoolDown > 0) {
-			GlobalGameData.swapparangCoolDown -= dt;
-		}
+		this.updateWeaponCooldowns(dt);
 		this.collision.velocityX = 0;
 		this.collision.velocityY = 0;
-		if(this.timeTakingDmg >= 1) {
-			this.timeTakingDmg = 0;
-			this.takingDmg = false;
-		}
-		if(this.takingDmg) {
-			this.timeTakingDmg += dt;
-		}
+		this.updateDamageCooldown(dt);
 		if(this.isSlashing) {
 			return;
 		} else {
@@ -9825,15 +9725,12 @@ gameObjects_William.prototype = $extend(com_framework_utils_Entity.prototype,{
 			}
 			if(com_framework_utils_Input.i.isKeyCodePressed(90)) {
 				this.slash();
-				this.isSlashing = true;
 			}
 			if(com_framework_utils_Input.i.isKeyCodePressed(88) && GlobalGameData.unlockedBagpipe && GlobalGameData.bagpipeCoolDown <= 0) {
 				this.playSong();
-				GlobalGameData.bagpipeCoolDown = 18;
 			}
 			if(com_framework_utils_Input.i.isKeyCodePressed(67) && GlobalGameData.unlockedSwapparang && GlobalGameData.swapparangCoolDown <= 0) {
 				this.tossSwapparang();
-				GlobalGameData.swapparangCoolDown = 2;
 			}
 		}
 		this.collision.update(dt);
@@ -9870,19 +9767,46 @@ gameObjects_William.prototype = $extend(com_framework_utils_Entity.prototype,{
 				this.display.scaleX = 1;
 			}
 		}
-		this.display.timeline.frameRate = 0.1;
+	}
+	,createWeapons: function() {
+		this.weapon = new gameObjects_Weapon();
+		this.rangedWeapon = new gameObjects_RangedWeapon();
+		this.instrument = new gameObjects_Instrument();
+		this.addChild(this.weapon);
+		this.addChild(this.rangedWeapon);
+		this.addChild(this.instrument);
+	}
+	,updateWeaponCooldowns: function(dt) {
+		if(GlobalGameData.bagpipeCoolDown > 0) {
+			GlobalGameData.bagpipeCoolDown -= dt;
+		}
+		if(GlobalGameData.swapparangCoolDown > 0) {
+			GlobalGameData.swapparangCoolDown -= dt;
+		}
+	}
+	,updateDamageCooldown: function(dt) {
+		if(this.timeTakingDmg >= 1) {
+			this.timeTakingDmg = 0;
+			this.takingDmg = false;
+		}
+		if(this.takingDmg) {
+			this.timeTakingDmg += dt;
+		}
 	}
 	,slash: function() {
+		this.isSlashing = true;
 		com_soundLib_SoundManager.playFx("slashSoundEffect");
 		com_soundLib_SoundManager.musicVolume(0.4);
 		this.weapon.swingSword(this.collision.x,this.collision.y,this.direction.x,this.direction.y);
 	}
 	,tossSwapparang: function() {
+		GlobalGameData.swapparangCoolDown = 2;
 		com_soundLib_SoundManager.playFx("boomerangSoundEffect");
 		com_soundLib_SoundManager.musicVolume(0.4);
 		this.rangedWeapon.tossSwapparang(this.collision.x + 8,this.collision.y + 6,this.direction.x,this.direction.y);
 	}
 	,playSong: function() {
+		GlobalGameData.bagpipeCoolDown = 18;
 		com_soundLib_SoundManager.playFx("bagpipeSoundEffect");
 		com_soundLib_SoundManager.musicVolume(0.4);
 		this.instrument.play(this.collision.x,this.collision.y,this.direction.x,this.direction.y);
@@ -12479,6 +12403,8 @@ js_Boot.__resolveNativeClass = function(name) {
 	return $global[name];
 };
 var kha__$Assets_ImageList = function() {
+	this.williamEndDescription = { name : "williamEnd", original_height : 112, file_sizes : [2681], original_width : 46, files : ["williamEnd.png"], type : "image"};
+	this.williamEnd = null;
 	this.williamDescription = { name : "william", original_height : 192, file_sizes : [5533], original_width : 96, files : ["william.png"], type : "image"};
 	this.william = null;
 	this.unlockableItemsDescription = { name : "unlockableItems", original_height : 384, file_sizes : [13973], original_width : 144, files : ["unlockableItems.png"], type : "image"};
@@ -12505,6 +12431,8 @@ var kha__$Assets_ImageList = function() {
 	this.golem = null;
 	this.darkraiDescription = { name : "darkrai", original_height : 160, file_sizes : [4989], original_width : 96, files : ["darkrai.png"], type : "image"};
 	this.darkrai = null;
+	this.chestDescription = { name : "chest", original_height : 42, file_sizes : [4288], original_width : 210, files : ["chest.png"], type : "image"};
+	this.chest = null;
 	this.brokenHeartDescription = { name : "brokenHeart", original_height : 192, file_sizes : [876], original_width : 212, files : ["brokenHeart.png"], type : "image"};
 	this.brokenHeart = null;
 	this.boomerangDescription = { name : "boomerang", original_height : 32, file_sizes : [463], original_width : 32, files : ["boomerang.png"], type : "image"};
@@ -12553,16 +12481,18 @@ var kha__$Assets_BlobList = function() {
 	this.startingArea_tmx = null;
 	this.startingAreaRoom_tmxDescription = { name : "startingAreaRoom_tmx", file_sizes : [11759], files : ["startingAreaRoom.tmx"], type : "blob"};
 	this.startingAreaRoom_tmx = null;
-	this.southwestArea_tmxDescription = { name : "southwestArea_tmx", file_sizes : [14489], files : ["southwestArea.tmx"], type : "blob"};
+	this.southwestArea_tmxDescription = { name : "southwestArea_tmx", file_sizes : [14481], files : ["southwestArea.tmx"], type : "blob"};
 	this.southwestArea_tmx = null;
 	this.objects_tsxDescription = { name : "objects_tsx", file_sizes : [760], files : ["objects.tsx"], type : "blob"};
 	this.objects_tsx = null;
-	this.northeastArea_tmxDescription = { name : "northeastArea_tmx", file_sizes : [13610], files : ["northeastArea.tmx"], type : "blob"};
+	this.northeastArea_tmxDescription = { name : "northeastArea_tmx", file_sizes : [13602], files : ["northeastArea.tmx"], type : "blob"};
 	this.northeastArea_tmx = null;
 	this.northeastAreaRoom_tmxDescription = { name : "northeastAreaRoom_tmx", file_sizes : [11644], files : ["northeastAreaRoom.tmx"], type : "blob"};
 	this.northeastAreaRoom_tmx = null;
-	this.finalArea_tmxDescription = { name : "finalArea_tmx", file_sizes : [15057], files : ["finalArea.tmx"], type : "blob"};
+	this.finalArea_tmxDescription = { name : "finalArea_tmx", file_sizes : [14920], files : ["finalArea.tmx"], type : "blob"};
 	this.finalArea_tmx = null;
+	this.bossArea_tmxDescription = { name : "bossArea_tmx", file_sizes : [10380], files : ["bossArea.tmx"], type : "blob"};
+	this.bossArea_tmx = null;
 };
 $hxClasses["kha._Assets.BlobList"] = kha__$Assets_BlobList;
 kha__$Assets_BlobList.__name__ = "kha._Assets.BlobList";
@@ -19775,11 +19705,6 @@ kha_graphics2_Graphics.prototype = {
 	}
 	,drawString: function(text,x,y) {
 	}
-	,drawLine: function(x1,y1,x2,y2,strength) {
-		if(strength == null) {
-			strength = 1.0;
-		}
-	}
 	,fillTriangle: function(x1,y1,x2,y2,x3,y3) {
 	}
 	,set_imageScaleQuality: function(value) {
@@ -21656,9 +21581,6 @@ kha_graphics4_CubeMap.prototype = {
 	,get_height: function() {
 		return this.myHeight;
 	}
-	,get_g2: function() {
-		return null;
-	}
 	,get_g4: function() {
 		if(this.graphics4 == null) {
 			this.graphics4 = new kha_js_graphics4_Graphics(this);
@@ -22714,142 +22636,6 @@ kha_graphics4_Graphics2.prototype = $extend(kha_graphics2_Graphics.prototype,{
 	}
 	,set_fontSize: function(value) {
 		return kha_graphics2_Graphics.prototype.set_fontSize.call(this,this.textPainter.fontSize = value);
-	}
-	,drawLine: function(x1,y1,x2,y2,strength) {
-		if(strength == null) {
-			strength = 1.0;
-		}
-		this.imagePainter.end();
-		this.textPainter.end();
-		var vec_x = 0;
-		var vec_y = 0;
-		if(y2 == y1) {
-			var v_x = 0;
-			var v_y = -1;
-			vec_x = v_x;
-			vec_y = v_y;
-		} else {
-			var y = -(x2 - x1) / (y2 - y1);
-			if(y == null) {
-				y = 0;
-			}
-			var v_x1 = 1;
-			var v_y1 = y;
-			vec_x = v_x1;
-			vec_y = v_y1;
-		}
-		var currentLength = Math.sqrt(vec_x * vec_x + vec_y * vec_y);
-		if(currentLength != 0) {
-			var mul = strength / currentLength;
-			vec_x *= mul;
-			vec_y *= mul;
-		}
-		var x = x1 + 0.5 * vec_x;
-		var y3 = y1 + 0.5 * vec_y;
-		if(y3 == null) {
-			y3 = 0;
-		}
-		if(x == null) {
-			x = 0;
-		}
-		var p1_x = x;
-		var p1_y = y3;
-		var x3 = x2 + 0.5 * vec_x;
-		var y4 = y2 + 0.5 * vec_y;
-		if(y4 == null) {
-			y4 = 0;
-		}
-		if(x3 == null) {
-			x3 = 0;
-		}
-		var p2_x = x3;
-		var p2_y = y4;
-		var x4 = p1_x - vec_x;
-		var y5 = p1_y - vec_y;
-		if(y5 == null) {
-			y5 = 0;
-		}
-		if(x4 == null) {
-			x4 = 0;
-		}
-		var p3_x = x4;
-		var p3_y = y5;
-		var x5 = p2_x - vec_x;
-		var y6 = p2_y - vec_y;
-		if(y6 == null) {
-			y6 = 0;
-		}
-		if(x5 == null) {
-			x5 = 0;
-		}
-		var p4_x = x5;
-		var p4_y = y6;
-		var _this = this.transformations[this.transformationIndex];
-		var w = _this._02 * p1_x + _this._12 * p1_y + _this._22;
-		var x6 = (_this._00 * p1_x + _this._10 * p1_y + _this._20) / w;
-		var y7 = (_this._01 * p1_x + _this._11 * p1_y + _this._21) / w;
-		var x7 = x6;
-		var y8 = y7;
-		if(y7 == null) {
-			y8 = 0;
-		}
-		if(x6 == null) {
-			x7 = 0;
-		}
-		var v_x2 = x7;
-		var v_y2 = y8;
-		p1_x = v_x2;
-		p1_y = v_y2;
-		var _this1 = this.transformations[this.transformationIndex];
-		var w1 = _this1._02 * p2_x + _this1._12 * p2_y + _this1._22;
-		var x8 = (_this1._00 * p2_x + _this1._10 * p2_y + _this1._20) / w1;
-		var y9 = (_this1._01 * p2_x + _this1._11 * p2_y + _this1._21) / w1;
-		var x9 = x8;
-		var y10 = y9;
-		if(y9 == null) {
-			y10 = 0;
-		}
-		if(x8 == null) {
-			x9 = 0;
-		}
-		var v_x3 = x9;
-		var v_y3 = y10;
-		p2_x = v_x3;
-		p2_y = v_y3;
-		var _this2 = this.transformations[this.transformationIndex];
-		var w2 = _this2._02 * p3_x + _this2._12 * p3_y + _this2._22;
-		var x10 = (_this2._00 * p3_x + _this2._10 * p3_y + _this2._20) / w2;
-		var y11 = (_this2._01 * p3_x + _this2._11 * p3_y + _this2._21) / w2;
-		var x11 = x10;
-		var y12 = y11;
-		if(y11 == null) {
-			y12 = 0;
-		}
-		if(x10 == null) {
-			x11 = 0;
-		}
-		var v_x4 = x11;
-		var v_y4 = y12;
-		p3_x = v_x4;
-		p3_y = v_y4;
-		var _this3 = this.transformations[this.transformationIndex];
-		var w3 = _this3._02 * p4_x + _this3._12 * p4_y + _this3._22;
-		var x12 = (_this3._00 * p4_x + _this3._10 * p4_y + _this3._20) / w3;
-		var y13 = (_this3._01 * p4_x + _this3._11 * p4_y + _this3._21) / w3;
-		var x13 = x12;
-		var y14 = y13;
-		if(y13 == null) {
-			y14 = 0;
-		}
-		if(x12 == null) {
-			x13 = 0;
-		}
-		var v_x5 = x13;
-		var v_y5 = y14;
-		p4_x = v_x5;
-		p4_y = v_y5;
-		this.coloredPainter.fillTriangle(this.get_opacity(),this.get_color(),p1_x,p1_y,p2_x,p2_y,p3_x,p3_y);
-		this.coloredPainter.fillTriangle(this.get_opacity(),this.get_color(),p3_x,p3_y,p2_x,p2_y,p4_x,p4_y);
 	}
 	,fillTriangle: function(x1,y1,x2,y2,x3,y3) {
 		this.imagePainter.end();
@@ -24477,19 +24263,6 @@ kha_js_CanvasGraphics.prototype = $extend(kha_graphics2_Graphics.prototype,{
 		this.webfont = js_Boot.__cast(font , kha_js_Font);
 		return this.webfont;
 	}
-	,drawLine: function(x1,y1,x2,y2,strength) {
-		if(strength == null) {
-			strength = 1.0;
-		}
-		this.canvas.beginPath();
-		var oldWith = this.canvas.lineWidth;
-		this.canvas.lineWidth = Math.round(strength);
-		this.canvas.moveTo(x1,y1);
-		this.canvas.lineTo(x2,y2);
-		this.canvas.moveTo(0,0);
-		this.canvas.stroke();
-		this.canvas.lineWidth = oldWith;
-	}
 	,fillTriangle: function(x1,y1,x2,y2,x3,y3) {
 		this.canvas.beginPath();
 		this.canvas.moveTo(x1,y1);
@@ -25501,7 +25274,7 @@ states_GameDialogBook.prototype = $extend(states_GameDialog.prototype,{
 		textGuideDisplay.set_color(-8388480);
 		this.stage.addChild(textGuideDisplay);
 		var closeDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
-		closeDisplay.set_text("Press escape to close");
+		closeDisplay.set_text("Press space to continue");
 		closeDisplay.x = textBoxDisplay.x + 50;
 		closeDisplay.y = textBoxDisplay.y + 400;
 		closeDisplay.set_color(-65536);
@@ -25513,37 +25286,10 @@ states_GameDialogBook.prototype = $extend(states_GameDialog.prototype,{
 	}
 	,__class__: states_GameDialogBook
 });
-var states_GameDialogNpc = function(dialogText) {
-	states_GameDialog.call(this);
-	this.text = dialogText;
-};
-$hxClasses["states.GameDialogNpc"] = states_GameDialogNpc;
-states_GameDialogNpc.__name__ = "states.GameDialogNpc";
-states_GameDialogNpc.__super__ = states_GameDialog;
-states_GameDialogNpc.prototype = $extend(states_GameDialog.prototype,{
-	load: function(resources) {
-		states_GameDialog.prototype.load.call(this,resources);
-	}
-	,init: function() {
-		states_GameDialog.prototype.init.call(this);
-		var textDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
-		textDisplay.set_text(this.text);
-		textDisplay.x = 426;
-		textDisplay.y = 505;
-		textDisplay.set_color(-16777216);
-		this.stage.addChild(textDisplay);
-	}
-	,update: function(dt) {
-		states_GameDialog.prototype.update.call(this,dt);
-	}
-	,__class__: states_GameDialogNpc
-});
-var states_GameDialogSequence = function(dialogText,dialogText2,changeToGF,isGF) {
-	this.actualText = 1;
+var states_GameDialogSequence = function(theTexts,changeToGF,isGF) {
+	this.actualText = 0;
 	states_GameDialog.call(this,changeToGF,isGF);
-	this.text = dialogText;
-	this.text2 = dialogText2;
-	this.texts = ["",this.text,this.text2];
+	this.texts = theTexts;
 };
 $hxClasses["states.GameDialogSequence"] = states_GameDialogSequence;
 states_GameDialogSequence.__name__ = "states.GameDialogSequence";
@@ -25555,7 +25301,7 @@ states_GameDialogSequence.prototype = $extend(states_GameDialog.prototype,{
 	,init: function() {
 		states_GameDialog.prototype.init.call(this);
 		this.textDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
-		this.textDisplay.set_text(this.text);
+		this.textDisplay.set_text(this.texts[this.actualText]);
 		this.textDisplay.x = 426;
 		this.textDisplay.y = 505;
 		this.textDisplay.set_color(-16777216);
@@ -25563,7 +25309,7 @@ states_GameDialogSequence.prototype = $extend(states_GameDialog.prototype,{
 	}
 	,update: function(dt) {
 		if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
-			if(this.actualText < 2) {
+			if(this.actualText < this.texts.length - 1) {
 				this.textDisplay.removeFromParent();
 				this.actualText++;
 				this.textDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
@@ -25604,11 +25350,13 @@ states_GameFinish.prototype = $extend(com_framework_utils_State.prototype,{
 	,closeDialog: function(subState) {
 		this.removeSubState(subState);
 		this.set_timeScale(1);
-		this.changeState(new states_GameOver("THE END"));
+		GlobalGameData.destroy();
+		this.changeState(new states_GameWon());
 	}
 	,openDialog: function() {
 		this.isReading = true;
-		var gameDialog = new states_GameDialogSequence(" -Will... Is that you?"," -It's been a while old friend... \n Welcome home.",false,true);
+		var texts = [" -Will... Is that you?"," -It's been a while old friend... \n Welcome home."];
+		var gameDialog = new states_GameDialogSequence(texts,false,true);
 		this.initSubState(gameDialog);
 		this.addSubState(gameDialog);
 		this.set_timeScale(0);
@@ -25655,11 +25403,47 @@ states_GameOver.prototype = $extend(com_framework_utils_State.prototype,{
 	}
 	,__class__: states_GameOver
 });
+var states_GameStart = function() {
+	com_framework_utils_State.call(this);
+	this.message = "Legends of old, tell there exists an ancient maze in this world, one\n" + "which hides a crystal at the end of its path.\n" + "It it said that Whoever manages to reach it, will have his wildest desires\n" + "be granted in front of his eyes.\n" + "\n" + "Long ago, a young man named Gwegwein took off on a trip to grant his wishes.\n" + "However, little did Gwegwein know about the dangers it hid, and ended\n" + "up dying halfway; along with his wishes.\n" + "\n" + "Despite that, this is not your story, and neither is this how Gwegwein's story\n" + "should end.\n" + "This is William's story, who's only wish is to get back his friend, no matter\n" + "what it takes.";
+};
+$hxClasses["states.GameStart"] = states_GameStart;
+states_GameStart.__name__ = "states.GameStart";
+states_GameStart.__super__ = com_framework_utils_State;
+states_GameStart.prototype = $extend(com_framework_utils_State.prototype,{
+	load: function(resources) {
+		var atlas = new com_loading_basicResources_JoinAtlas(1024,1024);
+		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,30));
+		resources.add(atlas);
+	}
+	,init: function() {
+		var messageDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		messageDisplay.set_text(this.message);
+		messageDisplay.x = 50;
+		messageDisplay.y = 100;
+		messageDisplay.set_color(-1);
+		this.stage.addChild(messageDisplay);
+		var startPlaying = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		startPlaying.set_text("Press enter to play");
+		startPlaying.x = com_gEngine_GEngine.virtualWidth / 2 - startPlaying.width() * 0.5;
+		startPlaying.y = com_gEngine_GEngine.virtualHeight - 100;
+		startPlaying.set_color(-16711936);
+		this.stage.addChild(startPlaying);
+	}
+	,update: function(dt) {
+		com_framework_utils_State.prototype.update.call(this,dt);
+		if(com_framework_utils_Input.i.isKeyCodePressed(13)) {
+			this.changeState(new states_GameState());
+		}
+	}
+	,__class__: states_GameStart
+});
 var states_GameState = function(room,playerPosX,playerPosY) {
 	this.hasRead = false;
 	this.readCooldown = 0.2;
 	this.timeSinceRead = 0;
 	this.isReading = false;
+	this.isOverlapping = false;
 	this.actualMap = "startingArea_tmx";
 	this.initialPosY = 448;
 	this.initialPosX = 128;
@@ -25694,6 +25478,7 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("slash_attack",36,36,0,[new com_loading_basicResources_Sequence("attack",[0,1,2,3,4])]));
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("boomerang",32,32,0,[new com_loading_basicResources_Sequence("attack",[0])]));
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("song",12,188,0,[new com_loading_basicResources_Sequence("play",[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("chest",105,41,0,[new com_loading_basicResources_Sequence("available",[0]),new com_loading_basicResources_Sequence("unavailable",[1])]));
 		atlas.add(new com_loading_basicResources_FontLoader("Kenney_Pixel",24));
 		resources.add(atlas);
 		resources.add(new com_loading_basicResources_SoundLoader("ambientalTheme",false));
@@ -25715,7 +25500,7 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		this.spectreCollision = new com_collision_platformer_CollisionGroup();
 		this.golemUpCollision = new com_collision_platformer_CollisionGroup();
 		this.golemDownCollision = new com_collision_platformer_CollisionGroup();
-		this.interactionCollision = new com_collision_platformer_CollisionGroup();
+		this.trapsCollision = new com_collision_platformer_CollisionGroup();
 		this.spawnCollision = new com_collision_platformer_CollisionGroup();
 		this.booksCollision = new com_collision_platformer_CollisionGroup();
 		this.npcsCollision = new com_collision_platformer_CollisionGroup();
@@ -25735,23 +25520,29 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 			}
 		},$bind(this,this.parseMapObjects));
 		this.stage.cameras[0].limits(0,0,this.worldMap.widthIntTiles * 16,this.worldMap.heightInTiles * 16);
-		this.william = new gameObjects_William(this.initialPosX,this.initialPosY,this.simulationLayer);
+		var layer = this.simulationLayer;
+		this.william = new gameObjects_William(this.initialPosX,this.initialPosY,layer);
 		this.addChild(this.william);
 		GlobalGameData.player = this.william;
-		GlobalGameData.simulationLayer = this.simulationLayer;
+		GlobalGameData.simulationLayer = layer;
 		GlobalGameData.camera = this.stage.cameras[0];
 		this.hudLayer = new com_gEngine_display_StaticLayer();
 		this.stage.addChild(this.hudLayer);
 		this.lifeDisplay = new com_gEngine_display_Sprite("playerLife");
 		this.weaponDisplay = new com_gEngine_display_Sprite("unlockableItems");
+		this.interactionDisplay = new com_gEngine_display_Sprite("chest");
+		this.interactionDisplay.timeline.playAnimation("unavailable");
 		this.hudLayer.addChild(this.lifeDisplay);
 		this.hudLayer.addChild(this.weaponDisplay);
+		this.hudLayer.addChild(this.interactionDisplay);
 		this.lifeDisplay.x = 20;
 		this.lifeDisplay.y = 30;
 		this.lifeDisplay.scaleX = this.lifeDisplay.scaleY = 2;
 		this.weaponDisplay.x = 550;
 		this.weaponDisplay.y = 620;
 		this.weaponDisplay.scaleX = this.weaponDisplay.scaleY = 1.5;
+		this.interactionDisplay.x = 550;
+		this.interactionDisplay.y = 30;
 	}
 	,parseMapObjects: function(layerTilemap,object) {
 		switch(object.objectType._hx_index) {
@@ -25767,35 +25558,34 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 				this.addChild(teleporter);
 			}
 			if(object.properties.exists("isBook")) {
-				var dialog = new cinematic_Dialog(object.x,object.y,object.width,object.height,object.properties.getString("text"),object.properties.getString("textGuide"));
+				var texts = [object.properties.getString("text")];
+				var dialog = new cinematic_Dialog(object.x,object.y,object.width,object.height,texts,object.properties.getString("textGuide"),null);
 				this.booksCollision.add(dialog.collider);
 				this.addChild(dialog);
 			}
 			if(object.properties.exists("isNPC")) {
-				var dialog1 = new cinematic_Dialog(object.x,object.y,object.width,object.height,object.properties.getString("text"),null,object.properties.getString("hasItem"));
+				var texts1 = [object.properties.getString("text")];
+				var dialog1 = new cinematic_Dialog(object.x,object.y,object.width,object.height,texts1,null,object.properties.getString("hasItem"));
 				this.npcsCollision.add(dialog1.collider);
 				this.addChild(dialog1);
 			}
 			if(object.properties.exists("isCrystal")) {
-				var dialog2 = new cinematic_FinalDialog(object.x,object.y,object.width,object.height,object.properties.getString("text"),object.properties.getString("text2"),object.properties.getString("text3"),object.properties.getString("text4"));
+				var texts2 = [object.properties.getString("text"),object.properties.getString("text2")];
+				var dialog2 = new cinematic_Dialog(object.x,object.y,object.width,object.height,texts2,null,null);
 				this.crystalCollision.add(dialog2.collider);
 				this.addChild(dialog2);
 			}
-			if(object.properties.exists("activatesSpawn")) {
+			if(object.properties.exists("isTrap")) {
 				var trap = new cinematic_Trap(object.x,object.y,object.width,object.height);
-				this.interactionCollision.add(trap.collider);
+				this.trapsCollision.add(trap.collider);
 				this.addChild(trap);
 			}
 			if(object.properties.exists("isSpawn")) {
+				var spawn = new cinematic_Spawn(object.x,object.y,object.width,object.height,object.properties.getString("enemyType"),Std.parseInt(object.properties.getString("dirY")));
+				this.spawnCollision.add(spawn.collider);
+				this.addChild(spawn);
 				if(object.properties.getString("enemyType") == "spectre") {
-					var spawn = new cinematic_Spawn(object.x,object.y,object.width,object.height,"spectre");
-					this.spawnCollision.add(spawn.collider);
-					this.addChild(spawn);
 					spawn.activate(this);
-				} else {
-					var spawn1 = new cinematic_Spawn(object.x,object.y,object.width,object.height,object.properties.getString("enemyType"),Std.parseInt(object.properties.getString("dirY")));
-					this.spawnCollision.add(spawn1.collider);
-					this.addChild(spawn1);
 				}
 			}
 			break;
@@ -25820,22 +25610,24 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 	,update: function(dt) {
 		com_framework_utils_State.prototype.update.call(this,dt);
 		this.simulationLayer.sort(com_gEngine_display_Layer.sortYCompare);
+		this.isOverlapping = false;
+		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.worldMap.collision);
 		com_collision_platformer_CollisionEngine.collide(this.spiderCollision,this.worldMap.collision);
-		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.doorsCollision,$bind(this,this.playerVsDoor));
-		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.teleportersCollision,$bind(this,this.playerVsTeleporter));
-		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.spiderCollision,$bind(this,this.playerVsSpider));
+		com_collision_platformer_CollisionEngine.collide(this.golemUpCollision,this.worldMap.collision,$bind(this,this.golemVsWalls));
+		com_collision_platformer_CollisionEngine.collide(this.golemDownCollision,this.worldMap.collision,$bind(this,this.golemVsWalls));
+		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.doorsCollision,$bind(this,this.williamVsDoor));
+		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.teleportersCollision,$bind(this,this.williamVsTeleporter));
+		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.spiderCollision,$bind(this,this.williamVsSpider));
+		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.golemUpCollision,$bind(this,this.williamVsGolem));
+		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.golemDownCollision,$bind(this,this.williamVsGolem));
+		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.spectreCollision,$bind(this,this.williamVsSpectre));
 		com_collision_platformer_CollisionEngine.overlap(this.william.weapon.slashCollisions,this.spiderCollision,$bind(this,this.attackVsSpider));
 		com_collision_platformer_CollisionEngine.overlap(this.william.rangedWeapon.swapparangCollisions,this.golemUpCollision,$bind(this,this.boomerangVsGolem));
 		com_collision_platformer_CollisionEngine.overlap(this.william.rangedWeapon.swapparangCollisions,this.golemDownCollision,$bind(this,this.boomerangVsGolem));
 		com_collision_platformer_CollisionEngine.collide(this.william.rangedWeapon.swapparangCollisions,this.worldMap.collision,$bind(this,this.boomerangVsWalls));
 		com_collision_platformer_CollisionEngine.overlap(this.william.instrument.instrumentCollisions,this.spiderCollision,$bind(this,this.stunSpiders));
 		com_collision_platformer_CollisionEngine.overlap(this.william.instrument.instrumentCollisions,this.spectreCollision,$bind(this,this.stunSpectre));
-		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.golemUpCollision,$bind(this,this.williamVsGolem));
-		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.golemDownCollision,$bind(this,this.williamVsGolem));
-		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.interactionCollision,$bind(this,this.activateSpawns));
-		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.spectreCollision,$bind(this,this.playerVsSpectre));
-		com_collision_platformer_CollisionEngine.collide(this.golemUpCollision,this.worldMap.collision,$bind(this,this.golemVsWalls));
-		com_collision_platformer_CollisionEngine.collide(this.golemDownCollision,this.worldMap.collision,$bind(this,this.golemVsWalls));
+		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.trapsCollision,$bind(this,this.activateSpawns));
 		com_collision_platformer_CollisionEngine.collide(this.golemUpCollision,this.golemDownCollision,$bind(this,this.golemVsGolem));
 		if(!this.isReading && !this.hasRead) {
 			com_collision_platformer_CollisionEngine.overlap(this.booksCollision,this.william.collision,$bind(this,this.williamVsBook));
@@ -25852,44 +25644,29 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		this.stage.cameras[0].setTarget(this.william.collision.x,this.william.collision.y);
 		this.showCurrentLives();
 		this.showCurrentItems();
+		this.showInteractions();
 	}
-	,williamVsCrystal: function(crystalCollision,playerCollision) {
-		if(!this.isReading) {
-			var dialog = crystalCollision.userData;
-			if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
-				this.openCrystalDialog(dialog.text,dialog.text2);
-			}
-		}
+	,golemVsWalls: function(mapCollision,golemCollision) {
+		var golem = golemCollision.userData;
+		golem.invertDirection();
 	}
-	,williamVsBook: function(booksCollision,playerCollision) {
-		if(!this.isReading) {
-			var dialog = booksCollision.userData;
-			if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
-				this.openBookDialog(dialog.text,dialog.textGuide);
-			}
-		}
+	,williamVsDoor: function(doorCollision,playerCollision) {
+		var door = doorCollision.userData;
+		door.changeRoom(this);
 	}
-	,williamVsNpc: function(npcsCollision,playerCollision) {
-		if(!this.isReading) {
-			var dialog = npcsCollision.userData;
-			if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
-				this.openNpcDialog(dialog.text);
-				this.unlockItem(dialog.weapon);
-			}
-		}
+	,williamVsTeleporter: function(teleporterCollision,playerCollision) {
+		var teleporter = teleporterCollision.userData;
+		var player = playerCollision.userData;
+		teleporter.teleportPlayer(player);
 	}
-	,activateSpawns: function(interactionCollision,playerCollision) {
-		var trap = interactionCollision.userData;
-		if(!trap.activated) {
-			trap.activate();
-			var _g = 0;
-			var _g1 = this.spawnCollision.colliders;
-			while(_g < _g1.length) {
-				var spawn = _g1[_g];
-				++_g;
-				var spawnpoint = spawn.userData;
-				spawnpoint.activate(this);
-			}
+	,williamVsSpider: function(spiderCollision,playerCollision) {
+		var spider = spiderCollision.userData;
+		var player = playerCollision.userData;
+		spider.attack();
+		player.takeDamage();
+		if(GlobalGameData.lives == 0) {
+			GlobalGameData.destroy();
+			this.changeState(new states_GameOver("Too bad... you won't be seeing your brother anytime soon"));
 		}
 	}
 	,williamVsGolem: function(playerCollision,golemCollision) {
@@ -25899,19 +25676,13 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 			this.changeState(new states_GameOver("Too bad... you won't be seeing your brother anytime soon"));
 		}
 	}
-	,golemVsWalls: function(mapCollision,golemCollision) {
-		var golem = golemCollision.userData;
-		golem.invertDirection();
+	,williamVsSpectre: function(spectreCollision,playerCollision) {
+		GlobalGameData.destroy();
+		this.changeState(new states_GameOver("Don't try getting close to a spectre. They will kill you instantly"));
 	}
-	,golemVsGolem: function(golemCollision1,golemCollision2) {
-		var golem1 = golemCollision1.userData;
-		var golem2 = golemCollision2.userData;
-		golem1.invertDirection();
-		golem2.invertDirection();
-	}
-	,boomerangVsWalls: function(wallCollision,boomerangCollision) {
-		var boomerang = boomerangCollision.userData;
-		boomerang.die();
+	,attackVsSpider: function(attackCollision,spiderCollision) {
+		var spider = spiderCollision.userData;
+		spider.takeDamage();
 	}
 	,boomerangVsGolem: function(boomerangCollision,golemCollision) {
 		var boomerang = boomerangCollision.userData;
@@ -25927,40 +25698,65 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		golem = new gameObjects_Golem(this.simulationLayer,this.golemDownCollision,old_x,old_y,0);
 		this.addChild(golem);
 	}
-	,playerVsDoor: function(doorCollision,playerCollision) {
-		var door = doorCollision.userData;
-		door.changeRoom(this);
+	,boomerangVsWalls: function(wallCollision,boomerangCollision) {
+		var boomerang = boomerangCollision.userData;
+		boomerang.die();
 	}
-	,playerVsTeleporter: function(teleporterCollision,playerCollision) {
-		var teleporter = teleporterCollision.userData;
-		var player = playerCollision.userData;
-		teleporter.teleportPlayer(player);
-	}
-	,playerVsSpider: function(spiderCollision,playerCollision) {
-		var spider = spiderCollision.userData;
-		var player = playerCollision.userData;
-		spider.attack();
-		player.takeDamage();
-		if(GlobalGameData.lives == 0) {
-			GlobalGameData.destroy();
-			this.changeState(new states_GameOver("Too bad... you won't be seeing your brother anytime soon"));
-		}
-	}
-	,playerVsSpectre: function(spectreCollision,playerCollision) {
-		GlobalGameData.destroy();
-		this.changeState(new states_GameOver("Don't try getting close to a spectre. They will kill you instantly"));
-	}
-	,attackVsSpider: function(attackCollision,spiderCollision) {
-		var spider = spiderCollision.userData;
-		spider.takeDamage();
+	,stunSpiders: function(attackCollision,enemyCollision) {
+		var enemy = enemyCollision.userData;
+		enemy.stun();
 	}
 	,stunSpectre: function(attackCollision,enemyCollision) {
 		var enemy = enemyCollision.userData;
 		enemy.stun();
 	}
-	,stunSpiders: function(attackCollision,enemyCollision) {
-		var enemy = enemyCollision.userData;
-		enemy.stun();
+	,activateSpawns: function(interactionCollision,playerCollision) {
+		var trap = interactionCollision.userData;
+		if(!trap.activated) {
+			trap.activate();
+			var _g = 0;
+			var _g1 = this.spawnCollision.colliders;
+			while(_g < _g1.length) {
+				var spawn = _g1[_g];
+				++_g;
+				var spawnpoint = spawn.userData;
+				spawnpoint.activate(this);
+			}
+		}
+	}
+	,golemVsGolem: function(golemCollision1,golemCollision2) {
+		var golem1 = golemCollision1.userData;
+		var golem2 = golemCollision2.userData;
+		golem1.invertDirection();
+		golem2.invertDirection();
+	}
+	,williamVsBook: function(booksCollision,playerCollision) {
+		this.isOverlapping = true;
+		if(!this.isReading) {
+			var dialog = booksCollision.userData;
+			if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+				this.openBookDialog(dialog.text[0],dialog.textGuide);
+			}
+		}
+	}
+	,williamVsNpc: function(npcsCollision,playerCollision) {
+		this.isOverlapping = true;
+		if(!this.isReading) {
+			var dialog = npcsCollision.userData;
+			if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+				this.openNpcDialog(dialog.text[0]);
+				this.unlockItem(dialog.weapon);
+			}
+		}
+	}
+	,williamVsCrystal: function(crystalCollision,playerCollision) {
+		this.isOverlapping = true;
+		if(!this.isReading) {
+			var dialog = crystalCollision.userData;
+			if(com_framework_utils_Input.i.isKeyCodePressed(32)) {
+				this.openCrystalDialog(dialog.text[0],dialog.text[1]);
+			}
+		}
 	}
 	,showCurrentLives: function() {
 		if(GlobalGameData.lives == 3) {
@@ -25982,6 +25778,13 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 			this.weaponDisplay.timeline.playAnimation("z");
 		}
 	}
+	,showInteractions: function() {
+		if(this.isOverlapping) {
+			this.interactionDisplay.timeline.playAnimation("available");
+		} else {
+			this.interactionDisplay.timeline.playAnimation("unavailable");
+		}
+	}
 	,openBookDialog: function(text,textGuide) {
 		this.isReading = true;
 		var gameDialog = new states_GameDialogBook(text,textGuide);
@@ -25991,14 +25794,16 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 	}
 	,openNpcDialog: function(text) {
 		this.isReading = true;
-		var gameDialog = new states_GameDialogNpc(text);
+		var texts = [text];
+		var gameDialog = new states_GameDialogSequence(texts,false,false);
 		this.initSubState(gameDialog);
 		this.addSubState(gameDialog);
 		this.set_timeScale(0);
 	}
 	,openCrystalDialog: function(text,text2) {
 		this.isReading = true;
-		var gameDialog = new states_GameDialogSequence(text,text2,true,false);
+		var texts = [text,text2];
+		var gameDialog = new states_GameDialogSequence(texts,true,false);
 		this.initSubState(gameDialog);
 		this.addSubState(gameDialog);
 		this.set_timeScale(0);
@@ -26016,15 +25821,51 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 			GlobalGameData.unlockedSwapparang = true;
 		}
 	}
-	,draw: function(framebuffer) {
-		com_framework_utils_State.prototype.draw.call(this,framebuffer);
-		var camera = this.stage.cameras[0];
-		com_collision_platformer_CollisionEngine.renderDebug(framebuffer,camera);
-	}
 	,destroy: function() {
 		com_framework_utils_State.prototype.destroy.call(this);
 	}
 	,__class__: states_GameState
+});
+var states_GameWon = function() {
+	com_framework_utils_State.call(this);
+};
+$hxClasses["states.GameWon"] = states_GameWon;
+states_GameWon.__name__ = "states.GameWon";
+states_GameWon.__super__ = com_framework_utils_State;
+states_GameWon.prototype = $extend(com_framework_utils_State.prototype,{
+	load: function(resources) {
+		var atlas = new com_loading_basicResources_JoinAtlas(1024,1024);
+		atlas.add(new com_loading_basicResources_ImageLoader("williamEnd"));
+		atlas.add(new com_loading_basicResources_FontLoader(kha_Assets.fonts.Kenney_PixelName,30));
+		resources.add(atlas);
+	}
+	,init: function() {
+		var image = new com_gEngine_display_Sprite("williamEnd");
+		image.x = com_gEngine_GEngine.virtualWidth * 0.5 - image.width() * 0.5;
+		image.y = 100;
+		image.scaleX = 2;
+		image.scaleY = 2;
+		this.stage.addChild(image);
+		var messageDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		messageDisplay.set_text("THE END" + "\n" + "Took a while, didn't it?");
+		messageDisplay.x = com_gEngine_GEngine.virtualWidth / 2 - messageDisplay.width() * 0.5;
+		messageDisplay.y = com_gEngine_GEngine.virtualHeight / 2;
+		messageDisplay.set_color(-16776961);
+		this.stage.addChild(messageDisplay);
+		var playAgainDisplay = new com_gEngine_display_Text(kha_Assets.fonts.Kenney_PixelName);
+		playAgainDisplay.set_text("Press enter to play again");
+		playAgainDisplay.x = com_gEngine_GEngine.virtualWidth / 2 - playAgainDisplay.width() * 0.5;
+		playAgainDisplay.y = com_gEngine_GEngine.virtualHeight - 100;
+		playAgainDisplay.set_color(-16711936);
+		this.stage.addChild(playAgainDisplay);
+	}
+	,update: function(dt) {
+		com_framework_utils_State.prototype.update.call(this,dt);
+		if(com_framework_utils_Input.i.isKeyCodePressed(13)) {
+			this.changeState(new states_GameState());
+		}
+	}
+	,__class__: states_GameWon
 });
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 $global.$haxeUID |= 0;

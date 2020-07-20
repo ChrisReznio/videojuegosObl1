@@ -15,12 +15,14 @@ import kha.math.FastVector2;
 import com.loading.basicResources.ImageLoader;
 import com.loading.Resources;
 import com.framework.utils.State;
+import GlobalGameData;
 
 class GameFinish extends State {
     public var isReading:Bool = false;
     public function new() {
         super();
     }
+    
     override function load(resources:Resources) {
         var atlas:JoinAtlas=new JoinAtlas(1024,1024);
         atlas.add(new FontLoader(Assets.fonts.Kenney_PixelName,30));
@@ -40,15 +42,17 @@ class GameFinish extends State {
 
     public function closeDialog(subState:State){
 		removeSubState(subState);
-		timeScale=1;
-        changeState(new GameOver("THE END"));
+        timeScale=1;
+        GGD.destroy();
+        changeState(new GameWon());
     }
 
     function openDialog(){
         isReading = true;
         var text1 = " -Will... Is that you?";
         var text2 = " -It's been a while old friend... \n Welcome home.";
-        var gameDialog = new GameDialogSequence(text1, text2, false, true);
+        var texts = [text1, text2];
+        var gameDialog = new GameDialogSequence(texts, false, true);
 		initSubState(gameDialog);
 		addSubState(gameDialog);
         timeScale=0;

@@ -3,12 +3,7 @@ package cinematic;
 import gameObjects.Spectre;
 import gameObjects.Spider;
 import gameObjects.Golem;
-import com.collision.platformer.ICollider;
-import gameObjects.William;
 import states.GameState;
-import com.sequencer.SequenceCode;
-import com.gEngine.display.Layer;
-import com.gEngine.display.Text;
 import com.collision.platformer.CollisionBox;
 import com.framework.utils.Entity;
 
@@ -24,11 +19,14 @@ class Spawn extends Entity {
 		collider = new CollisionBox();
 		collider.x = x;
 		collider.y = y;
-		collider.userData = this;
 		collider.width = width;
         collider.height = height;
-        enemyType = type;
-        directionY = dirY;
+        
+        this.enemyType = type;
+        //just for golems
+        this.directionY = dirY;
+
+        collider.userData = this;
     }
 
     override function update(dt:Float) {

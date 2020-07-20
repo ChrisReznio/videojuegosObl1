@@ -46,7 +46,6 @@ import cinematic.Door;
 import cinematic.Trap;
 import cinematic.Spawn;
 import cinematic.Dialog;
-import cinematic.FinalDialog;
 
 import com.gEngine.GEngine;
 import com.gEngine.display.Layer;
@@ -59,14 +58,14 @@ class GameState extends State {
 	var actualMap:String = "startingArea_tmx";
 	var worldMap:Tilemap;
 	var william:William;
+	var isOverlapping:Bool = false;
 
 	public var simulationLayer:Layer;
 	var hudLayer:Layer;
 
 	var lifeDisplay:Sprite;
 	var weaponDisplay:Sprite;
-
-	var touchJoystick:VirtualGamepad;
+	var interactionDisplay:Sprite;
 
 	var doorsCollision:CollisionGroup;
 	var teleportersCollision:CollisionGroup;
@@ -74,7 +73,7 @@ class GameState extends State {
 	public var spectreCollision:CollisionGroup;
 	public var golemUpCollision:CollisionGroup;
 	public var golemDownCollision:CollisionGroup;
-	var interactionCollision:CollisionGroup;
+	var trapsCollision:CollisionGroup;
 	var spawnCollision:CollisionGroup;
 	var booksCollision:CollisionGroup;
 	var npcsCollision:CollisionGroup;
@@ -171,6 +170,10 @@ class GameState extends State {
 		atlas.add(new SpriteSheetLoader("song", 12, 188, 0, [
 			new Sequence("play", [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19])
 		]));
+		atlas.add(new SpriteSheetLoader("chest", 105, 41, 0, [
+			new Sequence("available", [0]),
+			new Sequence("unavailable", [1])
+		]));
 		atlas.add(new FontLoader("Kenney_Pixel",24));
 		resources.add(atlas);
 		resources.add(new SoundLoader("ambientalTheme",false));
@@ -192,7 +195,7 @@ class GameState extends State {
 		spectreCollision = new CollisionGroup();
 		golemUpCollision = new CollisionGroup();
 		golemDownCollision = new CollisionGroup();
-		interactionCollision = new CollisionGroup();
+		trapsCollision = new CollisionGroup();
 		spawnCollision = new CollisionGroup();
 		booksCollision= new CollisionGroup();
 		npcsCollision = new CollisionGroup();
@@ -220,24 +223,37 @@ class GameState extends State {
 
 		stage.defaultCamera().limits(0, 0, worldMap.widthIntTiles * 16 , worldMap.heightInTiles * 16);
 		
-		william = new William(initialPosX,initialPosY,simulationLayer);
+		initializeWilliam(initialPosX,initialPosY,simulationLayer);
+		
+		initializeHUD();
+	}
+
+	inline function initializeWilliam(x:Float,y:Float,layer:Layer){
+		william = new William(x,y,layer);
 		addChild(william);
 		GGD.player = william;
-		GGD.simulationLayer = simulationLayer;
+		GGD.simulationLayer = layer;
 		GGD.camera=stage.defaultCamera();
-		
+	}
+
+	inline function initializeHUD(){
 		hudLayer = new StaticLayer();
 		stage.addChild(hudLayer);
 		lifeDisplay = new Sprite("playerLife");
 		weaponDisplay = new Sprite("unlockableItems");
+		interactionDisplay = new Sprite("chest");
+		interactionDisplay.timeline.playAnimation("unavailable");
 		hudLayer.addChild(lifeDisplay);
 		hudLayer.addChild(weaponDisplay);
+		hudLayer.addChild(interactionDisplay);
 		lifeDisplay.x = 20;
 		lifeDisplay.y = 30;
 		lifeDisplay.scaleX = lifeDisplay.scaleY = 2;
 		weaponDisplay.x = 550;
 		weaponDisplay.y = 620;
 		weaponDisplay.scaleX = weaponDisplay.scaleY = 1.5;
+		interactionDisplay.x = 550;
+		interactionDisplay.y = 30;
 	}
 
 	function parseMapObjects(layerTilemap:Tilemap, object:TmxObject) {
@@ -263,36 +279,34 @@ class GameState extends State {
 						addChild(teleporter);
 				}
 				if(object.properties.exists("isBook")){
-					var dialog = new Dialog(object.x, object.y, object.width, object.height, object.properties.get("text"), object.properties.get("textGuide"));
+					var texts = [object.properties.get("text")];
+					var dialog = new Dialog(object.x, object.y, object.width, object.height, texts, object.properties.get("textGuide"), null);
 					booksCollision.add(dialog.collider);
 					addChild(dialog);
 				}
 				if(object.properties.exists("isNPC")){
-					var dialog = new Dialog(object.x, object.y, object.width, object.height, object.properties.get("text"), null, object.properties.get("hasItem"));
+					var texts = [object.properties.get("text")];
+					var dialog = new Dialog(object.x, object.y, object.width, object.height, texts, null, object.properties.get("hasItem"));
 					npcsCollision.add(dialog.collider);
 					addChild(dialog);
 				}
 				if(object.properties.exists("isCrystal")){
-					var dialog = new FinalDialog(object.x, object.y, object.width, object.height, object.properties.get("text"), object.properties.get("text2"), object.properties.get("text3"), object.properties.get("text4"));
+					var texts = [object.properties.get("text"), object.properties.get("text2")];
+					var dialog = new Dialog(object.x, object.y, object.width, object.height, texts, null, null);
 					crystalCollision.add(dialog.collider);
 					addChild(dialog);
 				}
-				if(object.properties.exists("activatesSpawn")){
+				if(object.properties.exists("isTrap")){
 					var trap = new Trap(object.x, object.y, object.width, object.height);
-					interactionCollision.add(trap.collider);
+					trapsCollision.add(trap.collider);
 					addChild(trap);
 				}
 				if(object.properties.exists("isSpawn")){
+					var spawn = new Spawn(object.x, object.y, object.width, object.height, object.properties.get("enemyType"), Std.parseInt(object.properties.get("dirY")));
+						spawnCollision.add(spawn.collider);
+						addChild(spawn);
 					if(object.properties.get("enemyType") == "spectre"){
-						var spawn = new Spawn(object.x, object.y, object.width, object.height, "spectre");
-						spawnCollision.add(spawn.collider);
-						addChild(spawn);
 						spawn.activate(this);
-					}
-					else{
-						var spawn = new Spawn(object.x, object.y, object.width, object.height, object.properties.get("enemyType"), Std.parseInt(object.properties.get("dirY")));
-						spawnCollision.add(spawn.collider);
-						addChild(spawn);
 					}
 				}
 			case OTEllipse:
@@ -300,7 +314,6 @@ class GameState extends State {
 					SoundManager.playMusic(object.properties.get("music"), true);
 					SoundManager.musicVolume(0.4);
 				};
-
 			default: 
 		}
 	}
@@ -309,30 +322,46 @@ class GameState extends State {
 		super.update(dt);
 
 		simulationLayer.sort(Layer.sortYCompare);
-		// CollisionEngine.collide(william.collision,worldMap.collision);
+
+		isOverlapping = false;
+
+		//characters and overworld collisions
+		CollisionEngine.collide(william.collision,worldMap.collision);
 		CollisionEngine.collide(spiderCollision, worldMap.collision);
-		CollisionEngine.overlap(william.collision, doorsCollision, playerVsDoor);
-		CollisionEngine.overlap(william.collision, teleportersCollision, playerVsTeleporter);
-		CollisionEngine.collide(william.collision, spiderCollision, playerVsSpider);
+		CollisionEngine.collide(golemUpCollision, worldMap.collision, golemVsWalls);
+		CollisionEngine.collide(golemDownCollision, worldMap.collision, golemVsWalls);
+
+		//player and doors overlaps
+		CollisionEngine.overlap(william.collision, doorsCollision, williamVsDoor);
+		CollisionEngine.overlap(william.collision, teleportersCollision, williamVsTeleporter);
+
+		//enemies damaging player interactions
+		CollisionEngine.collide(william.collision, spiderCollision, williamVsSpider);
+		CollisionEngine.collide(william.collision, golemUpCollision, williamVsGolem);
+		CollisionEngine.collide(william.collision, golemDownCollision, williamVsGolem);
+		CollisionEngine.overlap(william.collision, spectreCollision, williamVsSpectre);
+
+		//weapons and enemies interactions
 		CollisionEngine.overlap(william.weapon.slashCollisions, spiderCollision, attackVsSpider);
 		CollisionEngine.overlap(william.rangedWeapon.swapparangCollisions, golemUpCollision, boomerangVsGolem);
 		CollisionEngine.overlap(william.rangedWeapon.swapparangCollisions, golemDownCollision, boomerangVsGolem);
 		CollisionEngine.collide(william.rangedWeapon.swapparangCollisions, worldMap.collision, boomerangVsWalls);
 		CollisionEngine.overlap(william.instrument.instrumentCollisions, spiderCollision, stunSpiders);
 		CollisionEngine.overlap(william.instrument.instrumentCollisions, spectreCollision, stunSpectre);
-		CollisionEngine.collide(william.collision, golemUpCollision, williamVsGolem);
-		CollisionEngine.collide(william.collision, golemDownCollision, williamVsGolem);
-		CollisionEngine.overlap(william.collision, interactionCollision, activateSpawns);
-		CollisionEngine.overlap(william.collision, spectreCollision, playerVsSpectre);
-		CollisionEngine.collide(golemUpCollision, worldMap.collision, golemVsWalls);
-		CollisionEngine.collide(golemDownCollision, worldMap.collision, golemVsWalls);
+		
+		//player stepping on spawnpoints
+		CollisionEngine.overlap(william.collision, trapsCollision, activateSpawns);
+		
+		//special golem collision
 		CollisionEngine.collide(golemUpCollision, golemDownCollision, golemVsGolem);
 
+		//open dialogs
 		if(!isReading && !hasRead){
 			CollisionEngine.overlap(booksCollision, william.collision, williamVsBook);
 			CollisionEngine.overlap(npcsCollision, william.collision, williamVsNpc);
 			CollisionEngine.overlap(crystalCollision, william.collision, williamVsCrystal);
 		}
+
 		if(timeSinceRead >= readCooldown){
 			hasRead = false;
 			timeSinceRead = 0;
@@ -344,44 +373,33 @@ class GameState extends State {
 
 		showCurrentLives();
 		showCurrentItems();
+		showInteractions();
 	}
 
-	function williamVsCrystal(crystalCollision:ICollider, playerCollision:ICollider) {
-		if (!isReading) {
-			var dialog:FinalDialog = cast crystalCollision.userData;
-			if (Input.i.isKeyCodePressed(KeyCode.Space)) {
-				openCrystalDialog(dialog.text, dialog.text2);
-			}
-		}
-	}
-	
-	function williamVsBook(booksCollision:ICollider, playerCollision:ICollider){
-		if (!isReading) {
-			var dialog:Dialog = cast booksCollision.userData;
-			if (Input.i.isKeyCodePressed(KeyCode.Space)) {
-				openBookDialog(dialog.text, dialog.textGuide);
-			}
-		}
+	function golemVsWalls(mapCollision:ICollider, golemCollision:ICollider){
+		var golem:Golem = cast golemCollision.userData;
+		golem.invertDirection();
 	}
 
-	function williamVsNpc(npcsCollision:ICollider, playerCollision:ICollider) {
-		if (!isReading) {
-			var dialog:Dialog = cast npcsCollision.userData;
-			if (Input.i.isKeyCodePressed(KeyCode.Space)) {
-				openNpcDialog(dialog.text);
-				unlockItem(dialog.weapon);
-			}
-		}
+	function williamVsDoor(doorCollision:ICollider, playerCollision:ICollider) {
+		var door:Door = cast doorCollision.userData;
+		door.changeRoom(this);
 	}
 
-	function activateSpawns(interactionCollision:ICollider, playerCollision:ICollider){
-		var trap:Trap = cast interactionCollision.userData;
-		if (!trap.activated) {
-			trap.activate();
-			for (spawn in this.spawnCollision.colliders) {
-				var spawnpoint:Spawn = cast spawn.userData;
-				spawnpoint.activate(this);
-			}
+	function williamVsTeleporter(teleporterCollision:ICollider, playerCollision:ICollider) {
+		var teleporter:Door = cast teleporterCollision.userData;
+		var player:William = cast playerCollision.userData;
+		teleporter.teleportPlayer(player);
+	}
+
+	function williamVsSpider(spiderCollision:ICollider, playerCollision:ICollider) {
+		var spider:Spider = cast spiderCollision.userData;
+		var player:William = cast playerCollision.userData;
+		spider.attack();
+		player.takeDamage();
+		if(GGD.lives == 0){
+			GGD.destroy();
+			changeState(new GameOver("Too bad... you won't be seeing your brother anytime soon"));
 		}
 	}
 
@@ -393,23 +411,18 @@ class GameState extends State {
 		}
 	}
 
-	function golemVsWalls(mapCollision:ICollider, golemCollision:ICollider){
-		var golem:Golem = cast golemCollision.userData;
-		golem.invertDirection();
+	function williamVsSpectre(spectreCollision:ICollider, playerCollision:ICollider) {
+		var spectre:Spectre = cast spectreCollision.userData;
+		var player:William = cast playerCollision.userData;
+		GGD.destroy();
+		changeState(new GameOver("Don't try getting close to a spectre. They will kill you instantly"));
 	}
 
-	function golemVsGolem(golemCollision1:ICollider, golemCollision2:ICollider){
-		var golem1:Golem = cast golemCollision1.userData;
-		var golem2:Golem = cast golemCollision2.userData;
-		golem1.invertDirection();
-		golem2.invertDirection();
+	function attackVsSpider(attackCollision:ICollider, spiderCollision:ICollider) {
+		var spider:Spider = cast spiderCollision.userData;
+		spider.takeDamage();
 	}
-
-	function boomerangVsWalls(wallCollision:ICollider, boomerangCollision:ICollider){
-		var boomerang:Swapparang = cast boomerangCollision.userData;
-		boomerang.die();
-	}
-
+	
 	function boomerangVsGolem(boomerangCollision:ICollider, golemCollision:ICollider){
 		var boomerang:Swapparang = cast boomerangCollision.userData;
 		boomerang.die();
@@ -425,38 +438,14 @@ class GameState extends State {
 		addChild(golem);
 	}
 
-	function playerVsDoor(doorCollision:ICollider, playerCollision:ICollider) {
-		var door:Door = cast doorCollision.userData;
-		door.changeRoom(this);
+	function boomerangVsWalls(wallCollision:ICollider, boomerangCollision:ICollider){
+		var boomerang:Swapparang = cast boomerangCollision.userData;
+		boomerang.die();
 	}
 
-	function playerVsTeleporter(teleporterCollision:ICollider, playerCollision:ICollider) {
-		var teleporter:Door = cast teleporterCollision.userData;
-		var player:William = cast playerCollision.userData;
-		teleporter.teleportPlayer(player);
-	}
-
-	function playerVsSpider(spiderCollision:ICollider, playerCollision:ICollider) {
-		var spider:Spider = cast spiderCollision.userData;
-		var player:William = cast playerCollision.userData;
-		spider.attack();
-		player.takeDamage();
-		if(GGD.lives == 0){
-			GGD.destroy();
-			changeState(new GameOver("Too bad... you won't be seeing your brother anytime soon"));
-		}
-	}
-
-	function playerVsSpectre(spectreCollision:ICollider, playerCollision:ICollider) {
-		var spectre:Spectre = cast spectreCollision.userData;
-		var player:William = cast playerCollision.userData;
-		GGD.destroy();
-		changeState(new GameOver("Don't try getting close to a spectre. They will kill you instantly"));
-	}
-
-	function attackVsSpider(attackCollision:ICollider, spiderCollision:ICollider) {
-		var spider:Spider = cast spiderCollision.userData;
-		spider.takeDamage();
+	function stunSpiders(attackCollision:ICollider, enemyCollision:ICollider) {
+		var enemy:Spider = cast enemyCollision.userData;
+		enemy.stun();
 	}
 
 	function stunSpectre(attackCollision:ICollider, enemyCollision:ICollider) {
@@ -464,9 +453,53 @@ class GameState extends State {
 		enemy.stun();
 	}
 
-	function stunSpiders(attackCollision:ICollider, enemyCollision:ICollider) {
-		var enemy:Spider = cast enemyCollision.userData;
-		enemy.stun();
+	function activateSpawns(interactionCollision:ICollider, playerCollision:ICollider){
+		var trap:Trap = cast interactionCollision.userData;
+		if (!trap.activated) {
+			trap.activate();
+			for (spawn in this.spawnCollision.colliders) {
+				var spawnpoint:Spawn = cast spawn.userData;
+				spawnpoint.activate(this);
+			}
+		}
+	}
+
+	function golemVsGolem(golemCollision1:ICollider, golemCollision2:ICollider){
+		var golem1:Golem = cast golemCollision1.userData;
+		var golem2:Golem = cast golemCollision2.userData;
+		golem1.invertDirection();
+		golem2.invertDirection();
+	}
+
+	function williamVsBook(booksCollision:ICollider, playerCollision:ICollider){
+		isOverlapping = true;
+		if (!isReading) {
+			var dialog:Dialog = cast booksCollision.userData;
+			if (Input.i.isKeyCodePressed(KeyCode.Space)) {
+				openBookDialog(dialog.text[0], dialog.textGuide);
+			}
+		}
+	}
+
+	function williamVsNpc(npcsCollision:ICollider, playerCollision:ICollider) {
+		isOverlapping = true;
+		if (!isReading) {
+			var dialog:Dialog = cast npcsCollision.userData;
+			if (Input.i.isKeyCodePressed(KeyCode.Space)) {
+				openNpcDialog(dialog.text[0]);
+				unlockItem(dialog.weapon);
+			}
+		}
+	}
+
+	function williamVsCrystal(crystalCollision:ICollider, playerCollision:ICollider) {
+		isOverlapping = true;
+		if (!isReading) {
+			var dialog:Dialog = cast crystalCollision.userData;
+			if (Input.i.isKeyCodePressed(KeyCode.Space)) {
+				openCrystalDialog(dialog.text[0], dialog.text[1]);
+			}
+		}
 	}
 
 	function showCurrentLives() {
@@ -494,6 +527,14 @@ class GameState extends State {
 		}
 	}
 
+	function showInteractions() {
+		if(isOverlapping){
+			interactionDisplay.timeline.playAnimation("available");
+		}else{
+			interactionDisplay.timeline.playAnimation("unavailable");
+		}
+	}
+
 	function openBookDialog(text:String, textGuide:String) {
 		isReading = true;
 		var gameDialog = new GameDialogBook(text, textGuide);
@@ -504,7 +545,8 @@ class GameState extends State {
 
 	function openNpcDialog(text:String) {
 		isReading = true;
-		var gameDialog = new GameDialogNpc(text);
+		var texts = [text];
+		var gameDialog = new GameDialogSequence(texts, false, false);
 		initSubState(gameDialog);
 		addSubState(gameDialog);
 		timeScale = 0;
@@ -512,7 +554,8 @@ class GameState extends State {
 
 	function openCrystalDialog(text:String, text2:String) {
 		isReading = true;
-		var gameDialog = new GameDialogSequence(text, text2, true, false);
+		var texts = [text, text2];
+		var gameDialog = new GameDialogSequence(texts, true, false);
 		initSubState(gameDialog);
 		addSubState(gameDialog);
 		timeScale = 0;
@@ -533,13 +576,13 @@ class GameState extends State {
 		}
 	}
 	
-	#if DEBUGDRAW
-	override function draw(framebuffer:kha.Canvas) {
-		super.draw(framebuffer);
-		var camera=stage.defaultCamera();
-		CollisionEngine.renderDebug(framebuffer,camera);
-	}
-	#end
+	// #if DEBUGDRAW
+	// override function draw(framebuffer:kha.Canvas) {
+	// 	super.draw(framebuffer);
+	// 	var camera=stage.defaultCamera();
+	// 	CollisionEngine.renderDebug(framebuffer,camera);
+	// }
+	// #end
 	override function destroy() {
 		super.destroy();
 	}

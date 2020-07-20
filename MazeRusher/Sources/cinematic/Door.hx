@@ -21,12 +21,14 @@ class Door extends Entity {
 		collider = new CollisionBox();
 		collider.x = x;
 		collider.y = y;
-		collider.userData = this;
 		collider.width = width;
         collider.height = height;
+        
         this.room = room;
         this.newPosX = newPosX;
         this.newPosY = newPosY;
+
+		collider.userData = this;
     }
 
     override function update(dt:Float) {

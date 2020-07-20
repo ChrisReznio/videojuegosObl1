@@ -17,13 +17,15 @@ class Bagpipe extends Entity
 	public function new() 
 	{
         super();
+
         display = new Sprite("song");
-		display.scaleX = display.scaleY = 1;
+        display.scaleX = display.scaleY = 1;
+        display.timeline.frameRate = 1/8;
+
 		collision=new CollisionBox();
 		collision.width = display.width();
 		collision.height = display.height();
         collision.userData=this;
-        display.timeline.frameRate = 1/8;
 	}
 	override function limboStart() {
 		display.removeFromParent();

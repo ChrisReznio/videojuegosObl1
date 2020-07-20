@@ -22,20 +22,19 @@ class Golem extends Entity
 	public function new(layer:Layer,collisions:CollisionGroup,x:Float,y:Float,dirY:Int) 
 	{
 		super();
+		
         display = new Sprite("golem");
 		display.smooth = false;
+		display.scaleX = display.scaleY = 1;
+        display.offsetX = -5;
+		display.offsetY = 5;
+		display.pivotX = display.width()/2;
 		layer.addChild(display);
 		
 		collision = new CollisionBox();
 		collisions.add(collision);
-
 		collision.width = 34;
         collision.height = 34;
-		display.pivotX = display.width()/2;
-		
-        display.scaleX = display.scaleY = 1;
-        display.offsetX = -5;
-        display.offsetY = 5;
 		collision.x=x;
 		collision.y=y;
 		collision.userData = this;

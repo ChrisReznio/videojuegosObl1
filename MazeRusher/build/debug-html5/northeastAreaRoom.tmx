@@ -116,7 +116,8 @@
  Here is a piece of advice, take a shortcut to end this suffering  
  as I did.</property>
     <property name="textGuide">To use the SWAPPARANG, press c, and it will change your 
- possition with whatever creature it hits (except ghosts)</property>
+ possition with whatever creature it hits (except ghosts 
+ and spiders)</property>
    </properties>
   </object>
   <object id="6" x="176.667" y="240.292" width="14.6667" height="32.75">

@@ -110,7 +110,8 @@
  imagined they could talk amarite? Anyways tomorrow we 
  are gonna try taking a lava bath.</property>
     <property name="textGuide">To use the BAGPIPE, press x, and it will stun all enemies in 
- your way (careful with its cooldown)</property>
+ your way (careful with its cooldown) 
+ Works on ghosts and spiders.</property>
    </properties>
   </object>
   <object id="4" x="205.189" y="183.25" width="44.2045" height="59.0909">

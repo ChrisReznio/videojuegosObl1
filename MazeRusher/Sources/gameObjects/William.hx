@@ -40,14 +40,14 @@ class William extends Entity {
 
 		collision = new CollisionBox();
 		collision.width = display.width()*0.5;
-		collision.height = display.height()*0.6;
+		collision.height = display.height()*0.5;
 		display.pivotX = display.width()/2;
 		collision.x=x;
 		collision.y=y;
 		collision.userData = this;
 		
 		display.offsetX = -collision.width*0.5;
-		display.offsetY = -collision.height*0.6;
+		display.offsetY = -collision.height*0.9;
 
 		createWeapons();
 	}
@@ -244,6 +244,23 @@ class William extends Entity {
 			takingDmg = true;
 			GGD.lives--;
 		}
+	}
+
+	public function pushBack(){
+		if(direction.y>0){
+			collision.y -= 80;
+			collision.x = 250;
+		}
+		else{
+			collision.y += 80;
+			collision.x = 250;
+		}
+	}
+
+	public function dissapear(){
+		collision.removeFromParent();
+		display.removeFromParent();
+		die();
 	}
 
 	inline function notWalking(){

@@ -38,12 +38,14 @@ GlobalGameData.__name__ = "GlobalGameData";
 GlobalGameData.destroy = function() {
 	GlobalGameData.player = null;
 	GlobalGameData.simulationLayer = null;
+	GlobalGameData.attackLayer = null;
 	GlobalGameData.camera = null;
 	GlobalGameData.lives = 3;
 	GlobalGameData.bagpipeCoolDown = 0;
 	GlobalGameData.swapparangCoolDown = 0;
 	GlobalGameData.unlockedBagpipe = false;
 	GlobalGameData.unlockedSwapparang = false;
+	GlobalGameData.bossDefeated = false;
 };
 var HxOverrides = function() { };
 $hxClasses["HxOverrides"] = HxOverrides;
@@ -641,6 +643,9 @@ cinematic_Door.prototype = $extend(com_framework_utils_Entity.prototype,{
 		player.collision.x = this.newPosX;
 		player.collision.y = this.newPosY;
 	}
+	,lockDoor: function() {
+		this.isLocked = true;
+	}
 	,__class__: cinematic_Door
 });
 var cinematic_Spawn = function(x,y,width,height,type,dirY) {
@@ -669,6 +674,10 @@ cinematic_Spawn.prototype = $extend(com_framework_utils_Entity.prototype,{
 		if(this.enemyType == "spectre") {
 			var spectre = new gameObjects_Spectre(gameState.simulationLayer,gameState.spectreCollision,this.collider.x,this.collider.y);
 			gameState.addChild(spectre);
+		}
+		if(this.enemyType == "boss") {
+			var boss = new gameObjects_Boss(gameState.simulationLayer,240,gameState.bossCollision,gameState.bossAttackCollision,gameState.bossSidesCollision,1000);
+			gameState.addChild(boss);
 		}
 		if(this.enemyType == "golem") {
 			var golem;
@@ -4482,6 +4491,25 @@ com_gEngine_display_Sprite.prototype = {
 			this.parent = null;
 		}
 	}
+	,colorAdd: function(r,g,b,a) {
+		if(a == null) {
+			a = 0;
+		}
+		if(b == null) {
+			b = 0;
+		}
+		if(g == null) {
+			g = 0;
+		}
+		if(r == null) {
+			r = 0;
+		}
+		this.addRed = r;
+		this.addGreen = g;
+		this.addBlue = b;
+		this.addAlpha = a;
+		this.colorTransform = !(this.mulRed == 1 && this.mulGreen == 1 && this.mulBlue == 1 && this.alpha == 1 && this.addRed == 0 && this.addGreen == 0 && this.addBlue == 0 && this.addAlpha == 0);
+	}
 	,colorMultiplication: function(r,g,b,a) {
 		if(a == null) {
 			a = 1;
@@ -4500,6 +4528,10 @@ com_gEngine_display_Sprite.prototype = {
 		this.mulBlue = b;
 		this.alpha = a;
 		this.colorTransform = !(this.mulRed == 1 && this.mulGreen == 1 && this.mulBlue == 1 && this.alpha == 1 && this.addRed == 0 && this.addGreen == 0 && this.addBlue == 0 && this.addAlpha == 0);
+	}
+	,resetColorTransform: function() {
+		this.colorAdd();
+		this.colorMultiplication();
 	}
 	,getDrawArea: function(area,transform) {
 		var _this = this.transform;
@@ -9058,10 +9090,221 @@ gameObjects_Bagpipe.prototype = $extend(com_framework_utils_Entity.prototype,{
 			this.display.offsetX = 0;
 		}
 		songCollision.add(this.collision);
-		GlobalGameData.simulationLayer.addChild(this.display);
+		GlobalGameData.attackLayer.addChild(this.display);
 		this.display.timeline.playAnimation("play",false);
 	}
 	,__class__: gameObjects_Bagpipe
+});
+var gameObjects_Boss = function(layer,y,collisions,bossAttackCollision,bossSidesCollision,actualLives) {
+	this.attackCooldown = 3;
+	this.attackActualCooldown = 2.9;
+	com_framework_utils_Entity.call(this);
+	this.parentLayer = layer;
+	this.weapon = new gameObjects_BossAttack(bossAttackCollision,bossSidesCollision);
+	this.lives = actualLives;
+	this.addChild(this.weapon);
+	this.display = new com_gEngine_display_Sprite("dialga");
+	this.collisionGroup = collisions;
+	this.display.set_smooth(false);
+	layer.addChild(this.display);
+	this.collision = new com_collision_platformer_CollisionBox();
+	this.collisionGroup.add(this.collision);
+	var tmp = this.display.width();
+	this.collision.width = tmp * 0.6;
+	var tmp1 = this.display.height();
+	this.collision.height = tmp1 * 0.4;
+	var tmp2 = this.display.width();
+	this.display.pivotX = tmp2 / 2;
+	this.display.scaleX = this.display.scaleY = 1;
+	this.display.offsetX = -this.collision.width * 0.35;
+	this.display.offsetY = -this.collision.height * 0.8;
+	this.collision.x = 244;
+	this.collision.y = y;
+	this.collision.userData = this;
+	this.direction = new kha_math_FastVector2(0,0);
+};
+$hxClasses["gameObjects.Boss"] = gameObjects_Boss;
+gameObjects_Boss.__name__ = "gameObjects.Boss";
+gameObjects_Boss.__super__ = com_framework_utils_Entity;
+gameObjects_Boss.prototype = $extend(com_framework_utils_Entity.prototype,{
+	update: function(dt) {
+		this.display.resetColorTransform();
+		this.weapon.updateLasers(this.collision.y);
+		var _this = this.display.timeline;
+		if(!(!_this.playing && !_this.loop) && (this.display.timeline.currentAnimation == "attackFront" || this.display.timeline.currentAnimation == "attackBack")) {
+			return;
+		}
+		if(this.attackActualCooldown == 3) {
+			this.weapon.play(this.collision.x,this.collision.y,this.direction.y);
+		}
+		if(this.attackActualCooldown > 0) {
+			this.attackActualCooldown -= dt;
+		} else {
+			if(this.direction.y > 0) {
+				this.display.timeline.playAnimation("attackBack");
+				this.display.timeline.loop = false;
+			} else {
+				this.display.timeline.playAnimation("attackFront");
+				this.display.timeline.loop = false;
+			}
+			this.attackActualCooldown = this.attackCooldown;
+		}
+		var target = GlobalGameData.player;
+		this.direction = new kha_math_FastVector2(0,target.collision.y - this.collision.y);
+		var _this1 = this.direction;
+		var _this2 = this.direction;
+		var x = _this2.x;
+		var y = _this2.y;
+		if(y == null) {
+			y = 0;
+		}
+		if(x == null) {
+			x = 0;
+		}
+		var v_x = x;
+		var v_y = y;
+		var currentLength = Math.sqrt(v_x * v_x + v_y * v_y);
+		if(currentLength != 0) {
+			var mul = 1 / currentLength;
+			v_x *= mul;
+			v_y *= mul;
+		}
+		_this1.x = v_x;
+		_this1.y = v_y;
+		var _this3 = this.direction;
+		var _this4 = this.direction;
+		var x1 = _this4.x * 100;
+		var y1 = _this4.y * 100;
+		if(y1 == null) {
+			y1 = 0;
+		}
+		if(x1 == null) {
+			x1 = 0;
+		}
+		var v_x1 = x1;
+		var v_y1 = y1;
+		_this3.x = v_x1;
+		_this3.y = v_y1;
+		this.collision.velocityX = 0;
+		this.collision.velocityY = 0;
+		this.collision.update(dt);
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,render: function() {
+		this.display.x = this.collision.x;
+		this.display.y = this.collision.y;
+		var _this = this.display.timeline;
+		if(!(!_this.playing && !_this.loop) && (this.display.timeline.currentAnimation == "attackFront" || this.display.timeline.currentAnimation == "attackBack")) {
+			return;
+		}
+		var _this1 = this.display.timeline;
+		if(!_this1.playing && !_this1.loop && (this.display.timeline.currentAnimation == "damagedFront" || this.display.timeline.currentAnimation == "damagedBack") && this.lives == 0) {
+			this.parentLayer.remove(this.display);
+		}
+		if(this.collision.velocityY == 0) {
+			if(this.direction.y > 0) {
+				this.display.timeline.playAnimation("idleBack");
+			} else {
+				this.display.timeline.playAnimation("idleFront");
+			}
+		}
+		this.display.timeline.frameRate = 0.0625;
+	}
+	,takeDamage: function() {
+		this.display.colorMultiplication(80,1,1);
+		this.lives--;
+		if(this.lives == 0) {
+			this.dissapear();
+			GlobalGameData.bossDefeated = true;
+		}
+	}
+	,dissapear: function() {
+		this.collision.removeFromParent();
+		this.display.removeFromParent();
+		this.weapon.deleteLasers();
+	}
+	,__class__: gameObjects_Boss
+});
+var gameObjects_BossAttack = function(aCollision,sidesCollision) {
+	com_framework_utils_Entity.call(this);
+	this.pool = true;
+	this.bossAttackCollisions = aCollision;
+	this.leftLaserCollision = new com_collision_platformer_CollisionBox();
+	this.leftLaserCollision.x = 0;
+	this.leftLaserCollision.width = 230;
+	this.leftLaserCollision.height = 30;
+	this.rightLaserCollision = new com_collision_platformer_CollisionBox();
+	this.rightLaserCollision.x = 286;
+	this.rightLaserCollision.width = 230;
+	this.rightLaserCollision.height = 30;
+	sidesCollision.add(this.leftLaserCollision);
+	sidesCollision.add(this.rightLaserCollision);
+};
+$hxClasses["gameObjects.BossAttack"] = gameObjects_BossAttack;
+gameObjects_BossAttack.__name__ = "gameObjects.BossAttack";
+gameObjects_BossAttack.__super__ = com_framework_utils_Entity;
+gameObjects_BossAttack.prototype = $extend(com_framework_utils_Entity.prototype,{
+	updateLasers: function(y) {
+		this.leftLaserCollision.y = y;
+		this.rightLaserCollision.y = y;
+	}
+	,deleteLasers: function() {
+		this.leftLaserCollision.removeFromParent();
+		this.rightLaserCollision.removeFromParent();
+	}
+	,play: function(x,y,dirY) {
+		var roarOfTime = this.recycle(gameObjects_BossBullet);
+		roarOfTime.roar(x,y,dirY,this.bossAttackCollisions);
+	}
+	,__class__: gameObjects_BossAttack
+});
+var gameObjects_BossBullet = function() {
+	this.totalLifeTime = 0.4;
+	this.lifeTime = 0;
+	com_framework_utils_Entity.call(this);
+	this.collision = new com_collision_platformer_CollisionBox();
+	this.collision.userData = this;
+	this.display = new com_gEngine_display_Sprite("roarOfTime");
+	this.display.set_smooth(false);
+	this.display.pivotY = 500;
+	this.display.timeline.frameRate = 0.2;
+};
+$hxClasses["gameObjects.BossBullet"] = gameObjects_BossBullet;
+gameObjects_BossBullet.__name__ = "gameObjects.BossBullet";
+gameObjects_BossBullet.__super__ = com_framework_utils_Entity;
+gameObjects_BossBullet.prototype = $extend(com_framework_utils_Entity.prototype,{
+	limboStart: function() {
+		this.display.removeFromParent();
+		this.collision.removeFromParent();
+	}
+	,update: function(dt) {
+		this.lifeTime += dt;
+		if(this.lifeTime > this.totalLifeTime) {
+			this.die();
+		}
+		this.collision.update(dt);
+		this.collision.width = this.display.width();
+		this.collision.height = this.display.height();
+		this.display.x = this.collision.x;
+		this.display.y = this.collision.y;
+		com_framework_utils_Entity.prototype.update.call(this,dt);
+	}
+	,roar: function(x,y,dirY,bossBulletCollision) {
+		this.collision.x = 145;
+		this.collision.y = y;
+		if(dirY > 0) {
+			this.collision.y += 16;
+		} else {
+			this.collision.y -= 510;
+		}
+		GlobalGameData.attackLayer.addChild(this.display);
+		this.lifeTime = 0;
+		this.collision.velocityX = 0;
+		this.collision.velocityY = dirY;
+		bossBulletCollision.add(this.collision);
+		this.display.timeline.playAnimation("attack",false);
+	}
+	,__class__: gameObjects_BossBullet
 });
 var gameObjects_Golem = function(layer,collisions,x,y,dirY) {
 	com_framework_utils_Entity.call(this);
@@ -9605,14 +9848,14 @@ var gameObjects_William = function(x,y,layer) {
 	var tmp = this.display.width();
 	this.collision.width = tmp * 0.5;
 	var tmp1 = this.display.height();
-	this.collision.height = tmp1 * 0.6;
+	this.collision.height = tmp1 * 0.5;
 	var tmp2 = this.display.width();
 	this.display.pivotX = tmp2 / 2;
 	this.collision.x = x;
 	this.collision.y = y;
 	this.collision.userData = this;
 	this.display.offsetX = -this.collision.width * 0.5;
-	this.display.offsetY = -this.collision.height * 0.6;
+	this.display.offsetY = -this.collision.height * 0.9;
 	this.createWeapons();
 };
 $hxClasses["gameObjects.William"] = gameObjects_William;
@@ -9818,6 +10061,20 @@ gameObjects_William.prototype = $extend(com_framework_utils_Entity.prototype,{
 			this.takingDmg = true;
 			GlobalGameData.lives--;
 		}
+	}
+	,pushBack: function() {
+		if(this.direction.y > 0) {
+			this.collision.y -= 80;
+			this.collision.x = 250;
+		} else {
+			this.collision.y += 80;
+			this.collision.x = 250;
+		}
+	}
+	,dissapear: function() {
+		this.collision.removeFromParent();
+		this.display.removeFromParent();
+		this.die();
 	}
 	,__class__: gameObjects_William
 });
@@ -12423,12 +12680,16 @@ var kha__$Assets_ImageList = function() {
 	this.skeleton2nobackg = null;
 	this.skeleton1nobackgDescription = { name : "skeleton1nobackg", original_height : 35, file_sizes : [863], original_width : 40, files : ["skeleton1nobackg.png"], type : "image"};
 	this.skeleton1nobackg = null;
+	this.roarOfTimeDescription = { name : "roarOfTime", original_height : 510, file_sizes : [19653], original_width : 444, files : ["roarOfTime.png"], type : "image"};
+	this.roarOfTime = null;
 	this.playerLifeDescription = { name : "playerLife", original_height : 66, file_sizes : [670], original_width : 66, files : ["playerLife.png"], type : "image"};
 	this.playerLife = null;
 	this.joltikDescription = { name : "joltik", original_height : 96, file_sizes : [5682], original_width : 192, files : ["joltik.png"], type : "image"};
 	this.joltik = null;
 	this.golemDescription = { name : "golem", original_height : 144, file_sizes : [5492], original_width : 144, files : ["golem.png"], type : "image"};
 	this.golem = null;
+	this.dialgaDescription = { name : "dialga", original_height : 648, file_sizes : [51472], original_width : 288, files : ["dialga.png"], type : "image"};
+	this.dialga = null;
 	this.darkraiDescription = { name : "darkrai", original_height : 160, file_sizes : [4989], original_width : 96, files : ["darkrai.png"], type : "image"};
 	this.darkrai = null;
 	this.chestDescription = { name : "chest", original_height : 42, file_sizes : [4288], original_width : 210, files : ["chest.png"], type : "image"};
@@ -12459,8 +12720,8 @@ var kha__$Assets_SoundList = function() {
 	this.playerDamageSoundEffect = null;
 	this.finalStageThemeDescription = { name : "finalStageTheme", file_sizes : [2420064], files : ["finalStageTheme.ogg"], type : "sound"};
 	this.finalStageTheme = null;
-	this.finalBattleThemeDescription = { name : "finalBattleTheme", file_sizes : [1543288], files : ["finalBattleTheme.ogg"], type : "sound"};
-	this.finalBattleTheme = null;
+	this.bossThemeDescription = { name : "bossTheme", file_sizes : [1543288], files : ["bossTheme.ogg"], type : "sound"};
+	this.bossTheme = null;
 	this.boomerangSoundEffectDescription = { name : "boomerangSoundEffect", file_sizes : [13050], files : ["boomerangSoundEffect.ogg"], type : "sound"};
 	this.boomerangSoundEffect = null;
 	this.bagpipeSoundEffectDescription = { name : "bagpipeSoundEffect", file_sizes : [37232], files : ["bagpipeSoundEffect.ogg"], type : "sound"};
@@ -12481,7 +12742,7 @@ var kha__$Assets_BlobList = function() {
 	this.startingArea_tmx = null;
 	this.startingAreaRoom_tmxDescription = { name : "startingAreaRoom_tmx", file_sizes : [11759], files : ["startingAreaRoom.tmx"], type : "blob"};
 	this.startingAreaRoom_tmx = null;
-	this.southwestArea_tmxDescription = { name : "southwestArea_tmx", file_sizes : [14481], files : ["southwestArea.tmx"], type : "blob"};
+	this.southwestArea_tmxDescription = { name : "southwestArea_tmx", file_sizes : [14504], files : ["southwestArea.tmx"], type : "blob"};
 	this.southwestArea_tmx = null;
 	this.objects_tsxDescription = { name : "objects_tsx", file_sizes : [760], files : ["objects.tsx"], type : "blob"};
 	this.objects_tsx = null;
@@ -12491,7 +12752,7 @@ var kha__$Assets_BlobList = function() {
 	this.northeastAreaRoom_tmx = null;
 	this.finalArea_tmxDescription = { name : "finalArea_tmx", file_sizes : [14920], files : ["finalArea.tmx"], type : "blob"};
 	this.finalArea_tmx = null;
-	this.bossArea_tmxDescription = { name : "bossArea_tmx", file_sizes : [10380], files : ["bossArea.tmx"], type : "blob"};
+	this.bossArea_tmxDescription = { name : "bossArea_tmx", file_sizes : [10426], files : ["bossArea.tmx"], type : "blob"};
 	this.bossArea_tmx = null;
 };
 $hxClasses["kha._Assets.BlobList"] = kha__$Assets_BlobList;
@@ -25475,15 +25736,17 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("darkrai",32,32,0,[new com_loading_basicResources_Sequence("walkBack",[0,1,2]),new com_loading_basicResources_Sequence("walkDiagonalBack",[3,4,5]),new com_loading_basicResources_Sequence("walkSide",[6,7,8]),new com_loading_basicResources_Sequence("walkDiagonalFront",[9,10,11]),new com_loading_basicResources_Sequence("walkFront",[12,13,14])]));
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("golem",48,48,0,[new com_loading_basicResources_Sequence("walkBack",[0,2]),new com_loading_basicResources_Sequence("walkFront",[3,5]),new com_loading_basicResources_Sequence("idle",[6,7])]));
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("joltik",32,32,0,[new com_loading_basicResources_Sequence("idleFront",[8]),new com_loading_basicResources_Sequence("idleBack",[2]),new com_loading_basicResources_Sequence("idleSide",[14]),new com_loading_basicResources_Sequence("walkBack",[0,1,2]),new com_loading_basicResources_Sequence("walkFront",[6,8,8,7,8,8]),new com_loading_basicResources_Sequence("walkSide",[14,12,14,13]),new com_loading_basicResources_Sequence("attackBack",[3,4]),new com_loading_basicResources_Sequence("attackFront",[9,10]),new com_loading_basicResources_Sequence("attackSide",[15,16]),new com_loading_basicResources_Sequence("damagedBack",[5]),new com_loading_basicResources_Sequence("damagedFront",[11]),new com_loading_basicResources_Sequence("damagedSide",[17])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("dialga",48,72,0,[new com_loading_basicResources_Sequence("attackBack",[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]),new com_loading_basicResources_Sequence("attackFront",[18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35]),new com_loading_basicResources_Sequence("idleBack",[36,36,36,36,37,37,37]),new com_loading_basicResources_Sequence("idleFront",[38,38,38,38,39,39,39]),new com_loading_basicResources_Sequence("damagedBack",[40]),new com_loading_basicResources_Sequence("damagedFront",[41])]));
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("slash_attack",36,36,0,[new com_loading_basicResources_Sequence("attack",[0,1,2,3,4])]));
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("boomerang",32,32,0,[new com_loading_basicResources_Sequence("attack",[0])]));
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("song",12,188,0,[new com_loading_basicResources_Sequence("play",[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19])]));
 		atlas.add(new com_loading_basicResources_SpriteSheetLoader("chest",105,41,0,[new com_loading_basicResources_Sequence("available",[0]),new com_loading_basicResources_Sequence("unavailable",[1])]));
+		atlas.add(new com_loading_basicResources_SpriteSheetLoader("roarOfTime",222,510,0,[new com_loading_basicResources_Sequence("attack",[0,1])]));
 		atlas.add(new com_loading_basicResources_FontLoader("Kenney_Pixel",24));
 		resources.add(atlas);
 		resources.add(new com_loading_basicResources_SoundLoader("ambientalTheme",false));
 		resources.add(new com_loading_basicResources_SoundLoader("finalStageTheme",false));
-		resources.add(new com_loading_basicResources_SoundLoader("finalBattleTheme",false));
+		resources.add(new com_loading_basicResources_SoundLoader("bossTheme",false));
 		resources.add(new com_loading_basicResources_SoundLoader("slashSoundEffect"));
 		resources.add(new com_loading_basicResources_SoundLoader("playerDamageSoundEffect"));
 		resources.add(new com_loading_basicResources_SoundLoader("bagpipeSoundEffect"));
@@ -25500,13 +25763,21 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		this.spectreCollision = new com_collision_platformer_CollisionGroup();
 		this.golemUpCollision = new com_collision_platformer_CollisionGroup();
 		this.golemDownCollision = new com_collision_platformer_CollisionGroup();
+		this.bossCollision = new com_collision_platformer_CollisionGroup();
+		this.bossAttackCollision = new com_collision_platformer_CollisionGroup();
+		this.bossSidesCollision = new com_collision_platformer_CollisionGroup();
 		this.trapsCollision = new com_collision_platformer_CollisionGroup();
 		this.spawnCollision = new com_collision_platformer_CollisionGroup();
 		this.booksCollision = new com_collision_platformer_CollisionGroup();
 		this.npcsCollision = new com_collision_platformer_CollisionGroup();
 		this.crystalCollision = new com_collision_platformer_CollisionGroup();
 		this.simulationLayer = new com_gEngine_display_Layer();
+		this.attackLayer = new com_gEngine_display_Layer();
 		this.stage.addChild(this.simulationLayer);
+		this.stage.addChild(this.attackLayer);
+		GlobalGameData.simulationLayer = this.simulationLayer;
+		GlobalGameData.attackLayer = this.attackLayer;
+		GlobalGameData.camera = this.stage.cameras[0];
 		this.worldMap = new com_collision_platformer_Tilemap(this.actualMap,1);
 		this.worldMap.init(function(layerTilemap,tileLayer) {
 			_gthis.stage.cameras[0].scale = 2.5;
@@ -25520,12 +25791,9 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 			}
 		},$bind(this,this.parseMapObjects));
 		this.stage.cameras[0].limits(0,0,this.worldMap.widthIntTiles * 16,this.worldMap.heightInTiles * 16);
-		var layer = this.simulationLayer;
-		this.william = new gameObjects_William(this.initialPosX,this.initialPosY,layer);
+		this.william = new gameObjects_William(this.initialPosX,this.initialPosY,this.simulationLayer);
 		this.addChild(this.william);
 		GlobalGameData.player = this.william;
-		GlobalGameData.simulationLayer = layer;
-		GlobalGameData.camera = this.stage.cameras[0];
 		this.hudLayer = new com_gEngine_display_StaticLayer();
 		this.stage.addChild(this.hudLayer);
 		this.lifeDisplay = new com_gEngine_display_Sprite("playerLife");
@@ -25550,6 +25818,9 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 			if(object.properties.exists("isDoor")) {
 				var door = new cinematic_Door(object.x,object.y,object.width,object.height,object.properties.getString("goToMap"),Std.parseInt(object.properties.getString("goToX")),Std.parseInt(object.properties.getString("goToY")));
 				this.doorsCollision.add(door.collider);
+				if(object.properties.exists("isLocked")) {
+					door.lockDoor();
+				}
 				this.addChild(door);
 			}
 			if(object.properties.exists("isTeleporter")) {
@@ -25584,7 +25855,7 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 				var spawn = new cinematic_Spawn(object.x,object.y,object.width,object.height,object.properties.getString("enemyType"),Std.parseInt(object.properties.getString("dirY")));
 				this.spawnCollision.add(spawn.collider);
 				this.addChild(spawn);
-				if(object.properties.getString("enemyType") == "spectre") {
+				if(object.properties.getString("enemyType") == "spectre" || object.properties.getString("enemyType") == "boss") {
 					spawn.activate(this);
 				}
 			}
@@ -25621,7 +25892,12 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.golemUpCollision,$bind(this,this.williamVsGolem));
 		com_collision_platformer_CollisionEngine.collide(this.william.collision,this.golemDownCollision,$bind(this,this.williamVsGolem));
 		com_collision_platformer_CollisionEngine.overlap(this.william.collision,this.spectreCollision,$bind(this,this.williamVsSpectre));
+		com_collision_platformer_CollisionEngine.overlap(this.bossCollision,this.william.collision,$bind(this,this.williamVsBossSides));
+		com_collision_platformer_CollisionEngine.overlap(this.bossSidesCollision,this.william.collision,$bind(this,this.williamVsBossSides));
+		com_collision_platformer_CollisionEngine.overlap(this.bossAttackCollision,this.william.collision,$bind(this,this.williamVsBossAttacks));
 		com_collision_platformer_CollisionEngine.overlap(this.william.weapon.slashCollisions,this.spiderCollision,$bind(this,this.attackVsSpider));
+		com_collision_platformer_CollisionEngine.overlap(this.william.weapon.slashCollisions,this.bossCollision,$bind(this,this.attackVsBoss));
+		com_collision_platformer_CollisionEngine.overlap(this.william.rangedWeapon.swapparangCollisions,this.bossCollision,$bind(this,this.boomerangVsBoss));
 		com_collision_platformer_CollisionEngine.overlap(this.william.rangedWeapon.swapparangCollisions,this.golemUpCollision,$bind(this,this.boomerangVsGolem));
 		com_collision_platformer_CollisionEngine.overlap(this.william.rangedWeapon.swapparangCollisions,this.golemDownCollision,$bind(this,this.boomerangVsGolem));
 		com_collision_platformer_CollisionEngine.collide(this.william.rangedWeapon.swapparangCollisions,this.worldMap.collision,$bind(this,this.boomerangVsWalls));
@@ -25652,7 +25928,11 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 	}
 	,williamVsDoor: function(doorCollision,playerCollision) {
 		var door = doorCollision.userData;
-		door.changeRoom(this);
+		if(!door.isLocked) {
+			door.changeRoom(this);
+		} else if(GlobalGameData.bossDefeated) {
+			door.changeRoom(this);
+		}
 	}
 	,williamVsTeleporter: function(teleporterCollision,playerCollision) {
 		var teleporter = teleporterCollision.userData;
@@ -25680,9 +25960,23 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		GlobalGameData.destroy();
 		this.changeState(new states_GameOver("Don't try getting close to a spectre. They will kill you instantly"));
 	}
+	,williamVsBossAttacks: function(bossAttackCollision,playerCollision) {
+		this.william.takeDamage();
+		if(GlobalGameData.lives == 0) {
+			GlobalGameData.destroy();
+			this.changeState(new states_GameOver("Too bad... you won't be seeing your brother anytime soon"));
+		}
+	}
+	,williamVsBossSides: function(bosssidesCollision,playerCollision) {
+		this.william.pushBack();
+	}
 	,attackVsSpider: function(attackCollision,spiderCollision) {
 		var spider = spiderCollision.userData;
 		spider.takeDamage();
+	}
+	,attackVsBoss: function(attackCollision,bossCollision) {
+		var boss = bossCollision.userData;
+		boss.takeDamage();
 	}
 	,boomerangVsGolem: function(boomerangCollision,golemCollision) {
 		var boomerang = boomerangCollision.userData;
@@ -25697,6 +25991,19 @@ states_GameState.prototype = $extend(com_framework_utils_State.prototype,{
 		this.william.collision.y = new_y;
 		golem = new gameObjects_Golem(this.simulationLayer,this.golemDownCollision,old_x,old_y,0);
 		this.addChild(golem);
+	}
+	,boomerangVsBoss: function(boomerangCollision,bossCollision) {
+		var boomerang = boomerangCollision.userData;
+		boomerang.die();
+		var boss = bossCollision.userData;
+		var old_y = boss.collision.y;
+		var old_x = boss.collision.x;
+		var new_y = this.william.collision.y;
+		this.william.dissapear();
+		boss.collision.y = new_y;
+		this.william = new gameObjects_William(old_x,old_y,this.simulationLayer);
+		GlobalGameData.player = this.william;
+		this.addChild(GlobalGameData.player);
 	}
 	,boomerangVsWalls: function(wallCollision,boomerangCollision) {
 		var boomerang = boomerangCollision.userData;
@@ -25895,6 +26202,7 @@ GlobalGameData.unlockedBagpipe = false;
 GlobalGameData.stunDuration = 2;
 GlobalGameData.bagpipeCoolDown = 0;
 GlobalGameData.swapparangCoolDown = 0;
+GlobalGameData.bossDefeated = false;
 Xml.Element = 0;
 Xml.PCData = 1;
 Xml.CData = 2;

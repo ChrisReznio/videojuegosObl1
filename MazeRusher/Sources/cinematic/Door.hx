@@ -15,6 +15,7 @@ class Door extends Entity {
     public var room:String;
     public var newPosX:Int;
     public var newPosY:Int;
+    public var isLocked:Bool;
 
 	public function new(x:Float, y:Float, width:Float, height:Float, room:String, newPosX:Int, newPosY:Int) {
 		super();
@@ -42,5 +43,9 @@ class Door extends Entity {
     public function teleportPlayer(player:William) {
         player.collision.x = newPosX;
         player.collision.y = newPosY;
+    }
+
+    public function lockDoor(){
+        this.isLocked=true;
     }
 }

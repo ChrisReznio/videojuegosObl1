@@ -1,5 +1,6 @@
 package states;
 
+import gameObjects.Boss;
 import com.soundLib.SoundManager;
 import com.loading.basicResources.SoundLoader;
 import js.html.TextTrackCueList;
@@ -61,6 +62,7 @@ class GameState extends State {
 	var isOverlapping:Bool = false;
 
 	public var simulationLayer:Layer;
+	public var attackLayer:Layer;
 	var hudLayer:Layer;
 
 	var lifeDisplay:Sprite;
@@ -73,6 +75,9 @@ class GameState extends State {
 	public var spectreCollision:CollisionGroup;
 	public var golemUpCollision:CollisionGroup;
 	public var golemDownCollision:CollisionGroup;
+	public var bossCollision:CollisionGroup;
+	public var bossAttackCollision:CollisionGroup;
+	public var bossSidesCollision:CollisionGroup;
 	var trapsCollision:CollisionGroup;
 	var spawnCollision:CollisionGroup;
 	var booksCollision:CollisionGroup;
@@ -161,6 +166,14 @@ class GameState extends State {
 			new Sequence("damagedFront", [11]),
 			new Sequence("damagedSide", [17])
 		]));
+		atlas.add(new SpriteSheetLoader("dialga", 48, 72, 0, [
+			new Sequence("attackBack", [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]),
+			new Sequence("attackFront", [18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35]),
+			new Sequence("idleBack", [36,36,36,36,37,37,37]),
+			new Sequence("idleFront", [38,38,38,38,39,39,39]),
+			new Sequence("damagedBack", [40]),
+			new Sequence("damagedFront", [41])
+		]));
 		atlas.add(new SpriteSheetLoader("slash_attack", 36, 36, 0, [
 			new Sequence("attack", [0,1,2,3,4])
 		]));
@@ -174,11 +187,14 @@ class GameState extends State {
 			new Sequence("available", [0]),
 			new Sequence("unavailable", [1])
 		]));
+		atlas.add(new SpriteSheetLoader("roarOfTime", 222, 510, 0, [
+			new Sequence("attack", [0,1])
+		]));
 		atlas.add(new FontLoader("Kenney_Pixel",24));
 		resources.add(atlas);
 		resources.add(new SoundLoader("ambientalTheme",false));
 		resources.add(new SoundLoader("finalStageTheme",false));
-		resources.add(new SoundLoader("finalBattleTheme",false));
+		resources.add(new SoundLoader("bossTheme",false));
 		resources.add(new SoundLoader("slashSoundEffect"));
 		resources.add(new SoundLoader("playerDamageSoundEffect"));
 		resources.add(new SoundLoader("bagpipeSoundEffect"));
@@ -195,17 +211,25 @@ class GameState extends State {
 		spectreCollision = new CollisionGroup();
 		golemUpCollision = new CollisionGroup();
 		golemDownCollision = new CollisionGroup();
+		bossCollision = new CollisionGroup();
+		bossAttackCollision = new CollisionGroup();
+		bossSidesCollision = new CollisionGroup();
 		trapsCollision = new CollisionGroup();
 		spawnCollision = new CollisionGroup();
 		booksCollision= new CollisionGroup();
 		npcsCollision = new CollisionGroup();
 		crystalCollision = new CollisionGroup();
 		simulationLayer = new Layer();
+		attackLayer = new Layer();
 
 		stage.addChild(simulationLayer);
+		stage.addChild(attackLayer);
+
+		GGD.simulationLayer = simulationLayer;
+		GGD.attackLayer = attackLayer;
+		GGD.camera=stage.defaultCamera();
 
 		worldMap = new Tilemap(actualMap, 1);
-
 
 		worldMap.init(function(layerTilemap, tileLayer) {
 			stage.defaultCamera().scale=2.5;
@@ -232,8 +256,6 @@ class GameState extends State {
 		william = new William(x,y,layer);
 		addChild(william);
 		GGD.player = william;
-		GGD.simulationLayer = layer;
-		GGD.camera=stage.defaultCamera();
 	}
 
 	inline function initializeHUD(){
@@ -271,6 +293,9 @@ class GameState extends State {
 					var door = new Door(object.x, object.y, object.width, object.height, object.properties.get("goToMap"),
 						Std.parseInt(object.properties.get("goToX")), Std.parseInt(object.properties.get("goToY")));
 					doorsCollision.add(door.collider);
+					if(object.properties.exists("isLocked")){
+						door.lockDoor();
+					}
 					addChild(door);
 				}
 				if(object.properties.exists("isTeleporter")){
@@ -305,7 +330,7 @@ class GameState extends State {
 					var spawn = new Spawn(object.x, object.y, object.width, object.height, object.properties.get("enemyType"), Std.parseInt(object.properties.get("dirY")));
 						spawnCollision.add(spawn.collider);
 						addChild(spawn);
-					if(object.properties.get("enemyType") == "spectre"){
+					if(object.properties.get("enemyType") == "spectre" || object.properties.get("enemyType") == "boss"){
 						spawn.activate(this);
 					}
 				}
@@ -340,9 +365,14 @@ class GameState extends State {
 		CollisionEngine.collide(william.collision, golemUpCollision, williamVsGolem);
 		CollisionEngine.collide(william.collision, golemDownCollision, williamVsGolem);
 		CollisionEngine.overlap(william.collision, spectreCollision, williamVsSpectre);
+		CollisionEngine.overlap(bossCollision, william.collision, williamVsBossSides);
+		CollisionEngine.overlap(bossSidesCollision, william.collision, williamVsBossSides);
+		CollisionEngine.overlap(bossAttackCollision, william.collision, williamVsBossAttacks);
 
-		//weapons and enemies interactions
+		//weapon interactions
 		CollisionEngine.overlap(william.weapon.slashCollisions, spiderCollision, attackVsSpider);
+		CollisionEngine.overlap(william.weapon.slashCollisions, bossCollision, attackVsBoss);
+		CollisionEngine.overlap(william.rangedWeapon.swapparangCollisions, bossCollision, boomerangVsBoss);
 		CollisionEngine.overlap(william.rangedWeapon.swapparangCollisions, golemUpCollision, boomerangVsGolem);
 		CollisionEngine.overlap(william.rangedWeapon.swapparangCollisions, golemDownCollision, boomerangVsGolem);
 		CollisionEngine.collide(william.rangedWeapon.swapparangCollisions, worldMap.collision, boomerangVsWalls);
@@ -383,7 +413,12 @@ class GameState extends State {
 
 	function williamVsDoor(doorCollision:ICollider, playerCollision:ICollider) {
 		var door:Door = cast doorCollision.userData;
-		door.changeRoom(this);
+		if(!door.isLocked){
+			door.changeRoom(this);
+		}
+		else if(GGD.bossDefeated){
+			door.changeRoom(this);
+		}
 	}
 
 	function williamVsTeleporter(teleporterCollision:ICollider, playerCollision:ICollider) {
@@ -418,9 +453,25 @@ class GameState extends State {
 		changeState(new GameOver("Don't try getting close to a spectre. They will kill you instantly"));
 	}
 
+	function williamVsBossAttacks(bossAttackCollision:ICollider, playerCollision:ICollider){
+		william.takeDamage();
+		if(GGD.lives == 0){
+			GGD.destroy();
+			changeState(new GameOver("Too bad... you won't be seeing your brother anytime soon"));
+		}
+	}
+
+	function williamVsBossSides(bosssidesCollision:ICollider, playerCollision:ICollider){
+		william.pushBack();
+	}
 	function attackVsSpider(attackCollision:ICollider, spiderCollision:ICollider) {
 		var spider:Spider = cast spiderCollision.userData;
 		spider.takeDamage();
+	}
+
+	function attackVsBoss(attackCollision:ICollider, bossCollision:ICollider){
+		var boss:Boss = cast bossCollision.userData;
+		boss.takeDamage();
 	}
 	
 	function boomerangVsGolem(boomerangCollision:ICollider, golemCollision:ICollider){
@@ -436,6 +487,20 @@ class GameState extends State {
 		william.collision.y = new_y;
 		golem = new Golem(simulationLayer, golemDownCollision, old_x, old_y, 0);
 		addChild(golem);
+	}
+
+	function boomerangVsBoss(boomerangCollision:ICollider, bossCollision:ICollider){
+		var boomerang:Swapparang = cast boomerangCollision.userData;
+		boomerang.die();
+		var boss:Boss = cast bossCollision.userData;
+		var old_y = boss.collision.y;
+		var old_x = boss.collision.x;
+		var new_y = william.collision.y;
+		william.dissapear();
+		boss.collision.y = new_y;
+		this.william = new William(old_x, old_y, simulationLayer);
+		GGD.player = william;
+		addChild(GGD.player);
 	}
 
 	function boomerangVsWalls(wallCollision:ICollider, boomerangCollision:ICollider){
@@ -579,8 +644,8 @@ class GameState extends State {
 	// #if DEBUGDRAW
 	// override function draw(framebuffer:kha.Canvas) {
 	// 	super.draw(framebuffer);
-	// 	var camera=stage.defaultCamera();
-	// 	CollisionEngine.renderDebug(framebuffer,camera);
+	// 	var camera = stage.defaultCamera();
+	// 	CollisionEngine.renderDebug(framebuffer, camera);
 	// }
 	// #end
 	override function destroy() {

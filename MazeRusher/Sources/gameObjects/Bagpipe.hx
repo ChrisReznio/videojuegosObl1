@@ -50,7 +50,7 @@ class Bagpipe extends Entity
             setHorizontalCollision(x,y,dirX);
         }
 		songCollision.add(collision);
-		GGD.simulationLayer.addChild(display);
+		GGD.attackLayer.addChild(display);
 		display.timeline.playAnimation("play",false);
     }
 

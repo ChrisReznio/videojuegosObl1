@@ -280,9 +280,19 @@
 				"bossArea.tmx"
 			],
 			"file_sizes": [
-				10380
+				10426
 			],
 			"type": "blob"
+		},
+		{
+			"name": "bossTheme",
+			"files": [
+				"bossTheme.ogg"
+			],
+			"file_sizes": [
+				1543288
+			],
+			"type": "sound"
 		},
 		{
 			"name": "brokenHeart",
@@ -319,6 +329,18 @@
 			"type": "image",
 			"original_width": 96,
 			"original_height": 160
+		},
+		{
+			"name": "dialga",
+			"files": [
+				"dialga.png"
+			],
+			"file_sizes": [
+				51472
+			],
+			"type": "image",
+			"original_width": 288,
+			"original_height": 648
 		},
 		{
 			"name": "filmGrain_frag",
@@ -363,16 +385,6 @@
 				14920
 			],
 			"type": "blob"
-		},
-		{
-			"name": "finalBattleTheme",
-			"files": [
-				"finalBattleTheme.ogg"
-			],
-			"file_sizes": [
-				1543288
-			],
-			"type": "sound"
 		},
 		{
 			"name": "finalStageTheme",
@@ -1462,6 +1474,18 @@
 			"types": []
 		},
 		{
+			"name": "roarOfTime",
+			"files": [
+				"roarOfTime.png"
+			],
+			"file_sizes": [
+				19653
+			],
+			"type": "image",
+			"original_width": 444,
+			"original_height": 510
+		},
+		{
 			"name": "shInverseMask_frag",
 			"files": [
 				"shInverseMask.frag.essl",
@@ -2183,7 +2207,7 @@
 				"southwestArea.tmx"
 			],
 			"file_sizes": [
-				14481
+				14504
 			],
 			"type": "blob"
 		},

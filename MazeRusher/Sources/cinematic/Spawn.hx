@@ -3,6 +3,7 @@ package cinematic;
 import gameObjects.Spectre;
 import gameObjects.Spider;
 import gameObjects.Golem;
+import gameObjects.Boss;
 import states.GameState;
 import com.collision.platformer.CollisionBox;
 import com.framework.utils.Entity;
@@ -42,6 +43,10 @@ class Spawn extends Entity {
             var spectre = new Spectre(gameState.simulationLayer, gameState.spectreCollision, collider.x, collider.y);
 		    gameState.addChild(spectre);
         }
+        if(enemyType == "boss"){
+            var boss = new Boss(gameState.simulationLayer, 240, gameState.bossCollision, gameState.bossAttackCollision, gameState.bossSidesCollision, 1000);
+		    gameState.addChild(boss);
+        }
         if(enemyType == "golem"){
             var golem;
             if(directionY>0){
@@ -52,6 +57,5 @@ class Spawn extends Entity {
             }
 		    gameState.addChild(golem);
         }
-        
     }
 }

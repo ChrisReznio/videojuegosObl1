@@ -46,7 +46,7 @@
 </data>
  </layer>
  <objectgroup id="5" name="Interactions">
-  <object id="2" x="212.545" y="15.6834" width="86" height="15.3333">
+  <object id="2" x="212.545" y="15.6834" width="86" height="17.3333">
    <properties>
     <property name="goToMap" value="finalArea_tmx"/>
     <property name="goToX" type="int" value="248"/>
